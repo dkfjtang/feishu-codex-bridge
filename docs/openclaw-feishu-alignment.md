@@ -59,6 +59,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | 更新节流 | 流式内容低频刷新卡片 | 已支持 Codex delta 运行中节流更新和 card update 互斥 flush |
 | 取消快路径 | 用户发送停止文本时快速中断当前任务 | 已支持取消文本识别、cancelled 卡片和 `turn/interrupt` |
 | 状态查询快路径 | 用户查询当前任务时刷新已有卡片，不打断长任务 | 已支持状态文本识别，并绕过同 chat 队列刷新 active task 卡片 |
+| 长连接可观测性 | WebSocket 启动、入站事件、dispatch 失败进入日志 | 已记录 WS 启动阶段、事件收到和 handler 失败的 JSONL 日志 |
 
 ## 近期差距
 
@@ -78,7 +79,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 
 | 优先级 | OpenClaw 源码能力 | fca 目标 |
 | --- | --- | --- |
-| P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接；继续补结构化日志和连接状态可观测性 |
+| P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接，并补充 WS lifecycle / event dispatch 结构化日志；后续继续补断线重连和退出信号治理 |
 | P0 | 消息事件去重、回放过滤、自回声过滤 | 已实现基础护栏和持久化去重窗口，避免进程重启后重复处理 |
 | P0 | 持续回复卡片更新、节流和最终态兜底 | 已实现 running 节流、阶段标签更新、同一卡片互斥 flush、基础发送/更新重试和最终态更新；后续补更细的错误分类退避策略 |
 | P0 | 卡片 footer 的状态、会话和排障字段 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd |
@@ -99,6 +100,29 @@ OpenClaw 的入站链路包含以下护栏：
 7. 对状态查询文本走快速卡片刷新路径，不创建新的 Agent / Codex turn。
 
 fca 当前已实现 1 到 7。
+
+## 长连接源码对齐
+
+只读审计版本：`larksuite/openclaw-lark@adaa568`。
+
+OpenClaw 源码基线：
+
+- `src/core/lark-client.ts` 的 `startWS` 按 `probe -> EventDispatcher -> WSClient -> start` 启动长连接。
+- `startWS` 在重建连接前会关闭旧 `WSClient`，避免遗留连接。
+- `src/channel/monitor.ts` 默认走 `websocket` connection mode，并记录 WebSocket starting / started。
+- `src/messaging/inbound/handler.ts` 会记录收到消息、gate 后分发，以及 dispatch 失败耗时。
+
+fca 映射：
+
+- `FeishuSdkTransport.startMessageListener()` 保持 `EventDispatcher + WSClient` 入口，但不引入 OpenClaw 的多账号 channel monitor。
+- `runDev` 将同一个 JSONL logger 注入 transport 和 runtime，保证飞书连接、入站事件、Codex task 日志在同一日志流里关联。
+- 新增 `feishu.ws_starting`、`feishu.ws_dispatcher_created`、`feishu.ws_handlers_registered`、`feishu.ws_client_created`、`feishu.ws_started` 和 `feishu.ws_start_failed`。
+- 新增 `feishu.event_received` 和 `feishu.event_handler_failed`，只记录 `appId`、event type、`message_id`、`chat_id`、`chat_type` 和错误摘要。
+
+差异理由：
+
+- fca 当前只有单个自建应用入口，不需要复制 OpenClaw 多账号 monitor 和 connection mode 配置。
+- fca 的权威执行状态在 Codex thread / turn / runtime task，连接层只提供安全可观测信号，不记录消息正文、完整 payload、app secret、verification token 或 encrypt key。
 
 群聊入口的当前安全边界：
 

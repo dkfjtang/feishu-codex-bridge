@@ -107,6 +107,7 @@ test("probeBot returns bot open id and name from Feishu ping API", async () => {
 
 test("startMessageListener registers receive handler and starts WS client", async () => {
   const calls = [];
+  const logEntries = [];
   let registeredHandlers;
   let dispatcher;
   class FakeEventDispatcher {
@@ -141,6 +142,7 @@ test("startMessageListener registers receive handler and starts WS client", asyn
       return dispatcher;
     },
     createWsClient: (options) => new FakeWsClient(options),
+    logger: fakeLogger(logEntries),
   });
 
   await transport.startMessageListener({
@@ -169,6 +171,114 @@ test("startMessageListener registers receive handler and starts WS client", asyn
   assert.equal(calls[3].options.eventDispatcher, dispatcher);
   assert.deepEqual(messages, [{ event: { message: { message_id: "om_123" } } }]);
   assert.deepEqual(cardActions, [{ event: { action: { value: { fcaAction: "approval.resolve" } } } }]);
+  assert.deepEqual(
+    logEntries.map((entry) => entry.event),
+    [
+      "feishu.ws_starting",
+      "feishu.ws_dispatcher_created",
+      "feishu.ws_handlers_registered",
+      "feishu.ws_client_created",
+      "feishu.ws_started",
+      "feishu.event_received",
+      "feishu.event_received",
+    ],
+  );
+  assert.deepEqual(logEntries.at(-2), {
+    level: "info",
+    event: "feishu.event_received",
+    appId: "cli_123",
+    eventType: "im.message.receive_v1",
+    messageId: "om_123",
+    chatId: null,
+    chatType: null,
+  });
+});
+
+test("startMessageListener logs handler failures without message content", async () => {
+  const logEntries = [];
+  let registeredHandlers;
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: (handlers) => {
+        registeredHandlers = handlers;
+      },
+    }),
+    createWsClient: () => ({
+      start: async () => {},
+    }),
+    logger: fakeLogger(logEntries),
+  });
+
+  await transport.startMessageListener({
+    onMessageReceive: async () => {
+      throw new Error("handler failed");
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      registeredHandlers["im.message.receive_v1"]({
+        event: {
+          message: {
+            message_id: "om_123",
+            chat_id: "oc_123",
+            chat_type: "p2p",
+            content: JSON.stringify({ text: "secret text" }),
+          },
+        },
+      }),
+    /handler failed/,
+  );
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "error",
+    event: "feishu.event_handler_failed",
+    appId: "cli_123",
+    eventType: "im.message.receive_v1",
+    messageId: "om_123",
+    chatId: "oc_123",
+    chatType: "p2p",
+    errorSummary: "handler failed",
+    errorName: "Error",
+  });
+  assert.equal(JSON.stringify(logEntries).includes("secret text"), false);
+});
+
+test("startMessageListener logs websocket start failures", async () => {
+  const logEntries = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: () => ({
+      start: async () => {
+        throw new Error("ws unavailable");
+      },
+    }),
+    logger: fakeLogger(logEntries),
+  });
+
+  await assert.rejects(
+    () =>
+      transport.startMessageListener({
+        onMessageReceive: async () => {},
+      }),
+    /ws unavailable/,
+  );
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "error",
+    event: "feishu.ws_start_failed",
+    appId: "cli_123",
+    errorSummary: "ws unavailable",
+    errorName: "Error",
+  });
 });
 
 test("constructor requires app credentials", () => {
@@ -182,3 +292,10 @@ test("constructor requires app credentials", () => {
     /FeishuSdkTransport requires FEISHU_APP_ID and FEISHU_APP_SECRET/,
   );
 });
+
+function fakeLogger(entries) {
+  return {
+    info: (event, fields) => entries.push({ level: "info", event, ...fields }),
+    error: (event, fields) => entries.push({ level: "error", event, ...fields }),
+  };
+}

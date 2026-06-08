@@ -24,11 +24,16 @@ export async function runDev({
     return 1;
   }
 
+  const logger = createJsonLogger({
+    level: env.FCA_LOG_LEVEL?.trim() || "info",
+    output: errorOutput,
+  });
   const feishuTransport = transportFactory({
     appId: env.FEISHU_APP_ID,
     appSecret: env.FEISHU_APP_SECRET,
     verificationToken: env.FEISHU_VERIFICATION_TOKEN ?? "",
     encryptKey: env.FEISHU_ENCRYPT_KEY ?? "",
+    logger,
   });
   const probe = await feishuTransport.probeBot();
   if (!probe.ok) {
@@ -40,10 +45,7 @@ export async function runDev({
     env,
     feishuTransport,
     botOpenId: probe.botOpenId ?? null,
-    logger: createJsonLogger({
-      level: env.FCA_LOG_LEVEL?.trim() || "info",
-      output: errorOutput,
-    }),
+    logger,
   });
 
   output.write(`Starting fca for cwd ${app.config.defaultWorkdir}\n`);

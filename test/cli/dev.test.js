@@ -79,12 +79,13 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
 
   assert.equal(exitCode, 0);
   assert.equal(calls[0].type, "transport");
-  assert.deepEqual(calls[0].options, {
+  assert.deepEqual(withoutLogger(calls[0].options), {
     appId: "cli_123",
     appSecret: "secret",
     verificationToken: "",
     encryptKey: "",
   });
+  assert.equal(typeof calls[0].options.logger.info, "function");
   assert.equal(calls[1].type, "app");
   assert.deepEqual(calls[1].options.env, {
     FEISHU_APP_ID: "cli_123",
@@ -95,12 +96,18 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
   });
   assert.equal(calls[1].options.feishuTransport, transport);
   assert.equal(calls[1].options.botOpenId, "ou_bot");
+  assert.equal(calls[1].options.logger, calls[0].options.logger);
   assert.deepEqual(calls[2], { type: "start" });
   assert.equal(calls[3].type, "listen");
   assert.equal(typeof calls[3].onMessageReceive, "function");
   assert.equal(typeof calls[3].onCardAction, "function");
   assert.match(outputText, /bot Codex \(ou_bot\)/);
 });
+
+function withoutLogger(options) {
+  const { logger, ...rest } = options;
+  return rest;
+}
 
 test("runDev creates JSON logger from configured log level", async () => {
   let logText = "";

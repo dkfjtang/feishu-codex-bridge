@@ -22,6 +22,7 @@ TaskCardController
 - `FeishuSdkTransport` 使用 `@larksuiteoapi/node-sdk` 调用飞书消息 API。
 - `FeishuSdkTransport.probeBot()` 通过 bot ping API 探测 bot open_id，用于自回声过滤。
 - `FeishuSdkTransport.startMessageListener()` 使用飞书 SDK `EventDispatcher` 和 `WSClient` 监听 `im.message.receive_v1`。
+- `FeishuSdkTransport.startMessageListener()` 已输出 WebSocket 启动、dispatcher 注册、入站事件收到和 handler 失败的结构化日志。
 
 ## transport 接口
 
@@ -38,8 +39,30 @@ TaskCardController
     messageId,
     card,
   }) => ({ data: {} }),
+
+  startMessageListener: async ({
+    onMessageReceive,
+    onCardAction,
+  }) => {},
 }
 ```
+
+## 长连接可观测性
+
+`FeishuSdkTransport` 接收可选 `logger`，并通过 `runDev` 与 runtime 共用同一个 JSONL logger。
+
+当前事件：
+
+- `feishu.ws_starting`
+- `feishu.ws_dispatcher_created`
+- `feishu.ws_handlers_registered`
+- `feishu.ws_client_created`
+- `feishu.ws_started`
+- `feishu.ws_start_failed`
+- `feishu.event_received`
+- `feishu.event_handler_failed`
+
+日志只记录 `appId`、事件类型、`message_id`、`chat_id`、`chat_type` 和错误摘要；不记录 `appSecret`、verification token、encrypt key、消息正文或完整事件 payload。
 
 ## 发送卡片
 
@@ -101,7 +124,5 @@ transport payload：
 
 ## 后续接入点
 
-- 统一飞书 API 错误摘要。
 - 增加长连接断线、重连和退出信号治理。
 - 增加消息长度和卡片 payload 尺寸保护。
-- 增加交互卡片回调处理。
