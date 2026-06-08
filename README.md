@@ -50,7 +50,7 @@
 npm test
 ```
 
-当前测试覆盖 Codex JSON-RPC client 和 streamed delta 输出聚合。
+当前测试覆盖 Codex JSON-RPC client、app-server session、streamed delta 输出聚合、运行态状态转换、配置解析和访问策略。
 
 ## 文档索引
 
