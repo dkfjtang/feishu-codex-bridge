@@ -58,6 +58,7 @@ npm test
 - [MVP 推进方案](docs/mvp-plan.md)
 - [系统架构](docs/architecture.md)
 - [飞书交互模型](docs/feishu-interaction-model.md)
+- [飞书 SDK 适配层](docs/feishu-sdk-adapter.md)
 - [Codex app-server 适配层](docs/codex-app-server-adapter.md)
 - [实施计划](docs/implementation-plan.md)
 - [安全边界](docs/security.md)

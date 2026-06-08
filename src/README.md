@@ -19,6 +19,7 @@
 - `codex/turn-output-buffer.js`：Codex delta 输出聚合和卡片摘要截断。
 - `cli/smoke-codex-turn.js`：不依赖飞书的 Codex app-server smoke turn 入口。
 - `config/app-config.js`：从环境变量解析 fca 本地配置，不读取真实凭据文件。
+- `feishu/message-client.js`：将 SDK 无关的飞书消息 action 转换为 transport 调用。
 - `feishu/task-card-renderer.js`：将 fca task snapshot 渲染为飞书任务卡片 payload。
 - `feishu/task-card-actions.js`：构造发送新卡片或更新已有卡片的 SDK 无关动作。
 - `feishu/task-card-controller.js`：根据 task 状态同步发送或更新飞书任务卡片。
