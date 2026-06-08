@@ -130,7 +130,7 @@ fca 映射：
 - 附件下载审批摘要已先收敛为 Codex 风格的脱敏风险信息；后续可映射到现有 approval card，但当前不触发审批按钮或下载动作。
 - 附件审批摘要已验证可渲染为现有 waiting approval 卡片模型，复用当前卡片结构和按钮 value 形状；后续接入前仍需要真实 pending approval 映射和下载执行器。
 - 附件 pending approval 骨架已生成脱敏 request / approval / item id、keys 和日志字段；当前不写入运行时 pending map，避免按钮误回调后触发不存在的下载流程。
-- 附件下载 adapter 骨架已定义事件层到下载执行器之间的脱敏请求契约，并提供默认 disabled adapter；这一步只对齐 OpenClaw 文件/图片下载能力的接入点，不复用 OpenClaw 下载源码，也不调用真实飞书下载 API。
+- 附件下载 adapter 骨架已定义事件层到下载执行器之间的脱敏请求契约，并提供 transport-backed 包装和默认 disabled fallback；这一步只对齐 OpenClaw 文件/图片下载能力的接入点，不复用 OpenClaw 下载源码，也不调用真实飞书下载 API。
 - diagnostics 已暴露附件下载 adapter 的脱敏 `status`，便于后续运维 smoke 判断接入点是否配置；该状态不包含附件 key、文件名、路径或下载 payload。
 
 差异理由：

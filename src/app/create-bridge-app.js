@@ -7,14 +7,14 @@ import { FileThreadStore, SqliteThreadStore } from "../store/thread-store.js";
 import { FileMessageDedupStore } from "../store/message-dedup-store.js";
 import { TaskCardController } from "../feishu/task-card-controller.js";
 import { loadConfig } from "../config/app-config.js";
-import { createDisabledAttachmentDownloadAdapter } from "../feishu/attachment-download-adapter.js";
+import { createTransportAttachmentDownloadAdapter } from "../feishu/attachment-download-adapter.js";
 
 export function createBridgeApp({
   env = process.env,
   botOpenId = null,
   codexAppServerFactory = (options) => new CodexAppServerProcess(options),
   feishuTransport,
-  attachmentDownloadAdapterFactory = createDisabledAttachmentDownloadAdapter,
+  attachmentDownloadAdapterFactory = createTransportAttachmentDownloadAdapter,
   logger = null,
   threadStoreFactory = createThreadStore,
   messageDedupStoreFactory = (config) =>
@@ -31,7 +31,10 @@ export function createBridgeApp({
   });
   const threadStore = threadStoreFactory(config);
   const messageDedupStore = messageDedupStoreFactory(config);
-  const attachmentDownloadAdapter = attachmentDownloadAdapterFactory(config);
+  const attachmentDownloadAdapter = attachmentDownloadAdapterFactory({
+    config,
+    transport: feishuTransport,
+  });
   const feishuMessageClient = new FeishuMessageClient({
     transport: feishuTransport,
     cardChannel: config.cardChannel,

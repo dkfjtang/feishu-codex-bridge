@@ -325,9 +325,11 @@ test("createBridgeApp diagnostics sanitize attachment download adapter status", 
       FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
       FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
     },
-    attachmentDownloadAdapterFactory: () => ({
+    attachmentDownloadAdapterFactory: ({ config, transport }) => ({
       getStatus: () => ({
         status: "configured",
+        defaultWorkdir: config.defaultWorkdir,
+        transport,
         fileKey: "should_not_escape",
         fileName: "secret.txt",
         path: "F:\\secret.txt",
@@ -344,6 +346,63 @@ test("createBridgeApp diagnostics sanitize attachment download adapter status", 
   });
   assert.equal(JSON.stringify(app.getDiagnostics()).includes("should_not_escape"), false);
   assert.equal(JSON.stringify(app.getDiagnostics()).includes("secret.txt"), false);
+});
+
+test("createBridgeApp wires transport-backed attachment download adapter", async () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+      FCA_FEISHU_FILE_INPUTS_ENABLED: "true",
+    },
+    codexAppServerFactory: () => ({
+      start: async () => ({
+        onEvent: () => () => {},
+      }),
+    }),
+    feishuTransport: {
+      sendMessage: async () => ({ data: { message_id: "om_notice" } }),
+      downloadAttachment: async (request) => ({
+        status: "mocked",
+        reason: "transport contract exercised",
+        attachmentKind: request.attachmentKind,
+        approvalId: request.approvalId,
+        fileKey: "should_not_escape",
+      }),
+    },
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
+  });
+
+  await app.start();
+  const result = await app.eventHandler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_file_transport",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "file",
+        content: JSON.stringify({ file_key: "file_secret", file_name: "secret.txt" }),
+      },
+    },
+  });
+
+  assert.deepEqual(app.getDiagnostics().features.attachmentDownloadAdapter, {
+    status: "configured",
+  });
+  assert.deepEqual(result.attachmentDownload, {
+    status: "mocked",
+    reason: "transport contract exercised",
+    attachmentKind: "file",
+    approvalId: "attachment-om_file_",
+  });
+  assert.equal(JSON.stringify(result).includes("should_not_escape"), false);
+  assert.equal(JSON.stringify(result).includes("file_secret"), false);
 });
 
 test("createBridgeApp diagnostics tolerate transports without WS status", () => {
