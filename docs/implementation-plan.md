@@ -164,6 +164,7 @@ Done 标准：
 - 附件输入策略已独立为决策函数，当前只产出 `skip` / `notify_disabled` / `notify_unsupported` / `eligible`，`eligible` 仍被事件层固定提示拦截，不触发下载。
 - 附件下载前的脱敏审批摘要已定义，包含固定风险、附件类型、短消息 id 和会话类型；并可转换为现有 waiting approval 卡片模型，生成脱敏 pending id、keys 和审计字段。当前只用于后续审批/审计准备，不登记真实 pending map、不触发真实审批按钮回调。
 - 附件审批卡片渲染已与普通 Codex 审批分流：在下载执行链路完成前，附件审批模型只展示“查看详情 / 拒绝 / 停止”，不展示“允许一次 / 本会话允许”，避免误触发尚未实现的下载动作。
+- 附件审批卡片 action builder 已独立出来，可把脱敏 pending approval 转成 `FeishuMessageClient.sendAction` 可发送的 interactive card action；当前仍不登记真实 pending map、不触发下载，只为后续把文字提示替换为卡片交互做准备。
 - 附件下载 adapter 已先定义脱敏请求/结果契约，并提供 transport-backed 包装；该 adapter 只作为后续审批通过后的下载执行器接入点，当前入站事件层不会调用它。当前 SDK transport 尚未实现 `downloadAttachment`，因此默认仍返回 `disabled`，不调用飞书下载 API、不写入本地文件、不把附件提交给 Codex。
 - 长驻进程已具备基础退出治理：本机开发入口收到 `SIGINT` / `SIGTERM` 后会 best-effort 停止 app-server 子进程和飞书 transport，降低长任务或 WS listener 残留风险；飞书长连接默认依赖 SDK 自动重连，重连阶段会输出结构化日志。
 
