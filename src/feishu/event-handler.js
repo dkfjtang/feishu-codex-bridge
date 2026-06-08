@@ -109,16 +109,9 @@ export class FeishuEventHandler {
       });
     }
 
-    if (isCwdText(message.text)) {
-      return this.#handleUnsupportedCwdCommand(message.chatId);
-    }
-
-    if (isClearText(message.text)) {
-      return this.#handleUnsupportedClearCommand(message.chatId);
-    }
-
-    if (isPermissionText(message.text)) {
-      return this.#handleUnsupportedPermissionCommand(message.chatId);
+    const unsupportedCommand = matchUnsupportedTextCommand(message.text);
+    if (unsupportedCommand) {
+      return this.#handleUnsupportedTextCommand(message.chatId, unsupportedCommand);
     }
 
     return this.#enqueue(message.chatId, async () => {
@@ -198,43 +191,17 @@ export class FeishuEventHandler {
     return { status: "handled", reason: "Unsupported Feishu message type notified" };
   }
 
-  async #handleUnsupportedCwdCommand(chatId) {
+  async #handleUnsupportedTextCommand(chatId, command) {
     if (!this.#unsupportedMessageClient?.sendTextMessage) {
-      return { status: "skipped", reason: "Cwd command is not supported" };
+      return { status: "skipped", reason: command.reason };
     }
 
     await this.#unsupportedMessageClient.sendTextMessage({
       chatId,
-      text: "暂不支持在飞书内切换工作目录。当前版本只使用已配置的默认工作目录；后续开放 /cwd 时会先经过工作目录白名单校验。",
+      text: command.text,
     });
 
-    return { status: "handled", reason: "Cwd command is not supported" };
-  }
-
-  async #handleUnsupportedClearCommand(chatId) {
-    if (!this.#unsupportedMessageClient?.sendTextMessage) {
-      return { status: "skipped", reason: "Clear command is not supported" };
-    }
-
-    await this.#unsupportedMessageClient.sendTextMessage({
-      chatId,
-      text: "暂不支持在飞书内清理会话或重置线程。当前版本会继续复用已保存的 Codex thread；后续开放 /clear 时会先加入确认和审计。",
-    });
-
-    return { status: "handled", reason: "Clear command is not supported" };
-  }
-
-  async #handleUnsupportedPermissionCommand(chatId) {
-    if (!this.#unsupportedMessageClient?.sendTextMessage) {
-      return { status: "skipped", reason: "Permission command is not supported" };
-    }
-
-    await this.#unsupportedMessageClient.sendTextMessage({
-      chatId,
-      text: "暂不支持在飞书内修改 Codex 权限策略。当前版本仍使用本地已配置的权限边界；后续开放 /permission 时会先加入确认、审计和最小权限校验。",
-    });
-
-    return { status: "handled", reason: "Permission command is not supported" };
+    return { status: "handled", reason: command.reason };
   }
 
   #precheck(payload) {
@@ -343,16 +310,27 @@ function isStatusText(text) {
   return /^(状态|查询状态|任务状态|当前状态|\/status|status|task status)$/i.test(text.trim());
 }
 
-function isCwdText(text) {
-  return /^(\/cwd|cwd)(\s+.*)?$/i.test(text.trim());
-}
+const UNSUPPORTED_TEXT_COMMANDS = [
+  {
+    pattern: /^(\/cwd|cwd)(\s+.*)?$/i,
+    reason: "Cwd command is not supported",
+    text: "暂不支持在飞书内切换工作目录。当前版本只使用已配置的默认工作目录；后续开放 /cwd 时会先经过工作目录白名单校验。",
+  },
+  {
+    pattern: /^(\/clear|clear|清理会话|重置会话)(\s+.*)?$/i,
+    reason: "Clear command is not supported",
+    text: "暂不支持在飞书内清理会话或重置线程。当前版本会继续复用已保存的 Codex thread；后续开放 /clear 时会先加入确认和审计。",
+  },
+  {
+    pattern: /^(\/permission|permission|权限)(\s+.*)?$/i,
+    reason: "Permission command is not supported",
+    text: "暂不支持在飞书内修改 Codex 权限策略。当前版本仍使用本地已配置的权限边界；后续开放 /permission 时会先加入确认、审计和最小权限校验。",
+  },
+];
 
-function isClearText(text) {
-  return /^(\/clear|clear|清理会话|重置会话)(\s+.*)?$/i.test(text.trim());
-}
-
-function isPermissionText(text) {
-  return /^(\/permission|permission|权限)(\s+.*)?$/i.test(text.trim());
+function matchUnsupportedTextCommand(text) {
+  const normalized = text.trim();
+  return UNSUPPORTED_TEXT_COMMANDS.find((command) => command.pattern.test(normalized)) ?? null;
 }
 
 function mapGroupSenderOpenIds(policy) {
