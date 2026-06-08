@@ -26,6 +26,7 @@ export class MemoryThreadStore {
     cwd,
     threadId,
     lastTurnId = null,
+    lastSeenAt = null,
   }) {
     const record = {
       openId,
@@ -35,7 +36,7 @@ export class MemoryThreadStore {
       cwd,
       threadId,
       lastTurnId,
-      lastSeenAt: this.#now(),
+      lastSeenAt: lastSeenAt ?? this.#now(),
     };
     this.#records.set(mappingKey(record), record);
     await this.afterSave();
@@ -120,6 +121,7 @@ export class SqliteThreadStore {
     cwd,
     threadId,
     lastTurnId = null,
+    lastSeenAt = null,
   }) {
     const db = await this.#open();
     const record = {
@@ -130,7 +132,7 @@ export class SqliteThreadStore {
       cwd,
       threadId,
       lastTurnId,
-      lastSeenAt: this.#now(),
+      lastSeenAt: lastSeenAt ?? this.#now(),
     };
 
     db.prepare(

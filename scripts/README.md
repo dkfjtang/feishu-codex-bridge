@@ -19,6 +19,19 @@ npm run check-config
 `check-config` 会检查飞书凭据、open_id 白名单、工作目录白名单、默认工作目录和基础 runtime 配置；它只读取当前环境变量，不读取或提交真实 `.env`。
 
 ```powershell
+npm run migrate:thread-store -- --help
+```
+
+将 JSON thread store 迁移到 SQLite 的命令：
+
+```powershell
+npm run migrate:thread-store -- --from-json data/threads.json --to-sqlite data/threads.sqlite --dry-run
+npm run migrate:thread-store -- --from-json data/threads.json --to-sqlite data/threads.sqlite
+```
+
+迁移脚本会保留可迁移记录的 `openId`、`chatId`、`chatType`、`conversationId`、`cwd`、`threadId`、`lastTurnId` 和 `lastSeenAt`；缺少 `openId`、`cwd` 或 `threadId` 的坏记录会被跳过并计数。
+
+```powershell
 npm run check-codex-app-server -- --help
 ```
 

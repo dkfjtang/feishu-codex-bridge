@@ -67,6 +67,14 @@ FCA_THREAD_STORE_PATH=data/threads.sqlite
 
 SQLite 后端同样按会话维度保存映射：私聊使用 `open_id + cwd`，群聊使用 `chat_id + cwd`。
 
+从 JSON 切换到 SQLite 前可先 dry-run：
+
+```powershell
+npm run migrate:thread-store -- --from-json data/threads.json --to-sqlite data/threads.sqlite --dry-run
+```
+
+确认记录数量后再执行迁移，并把运行环境切到 `FCA_THREAD_STORE_DRIVER=sqlite`。
+
 ## 日志输出
 
 `npm run dev` 会将结构化任务日志写入 stderr，便于本机终端、容器或进程管理器采集。任务日志包含 `messageId`、`openId`、`chatId`、`threadId`、`turnId`、`status`、`elapsedMs`、`errorSummary` 和 `errorType`，不包含 App Secret、Codex 凭据或完整环境变量。
