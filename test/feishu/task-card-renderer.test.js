@@ -30,6 +30,12 @@ test("renderTaskCard renders running status with thread and turn footer", () => 
     cwd: "F:\\development\\f-codex",
     summaryText: "正在检查 README",
     finalText: "",
+    currentStage: {
+      id: "item_123",
+      type: "commandExecution",
+      status: "inProgress",
+      label: "执行命令",
+    },
     threadId: "thr_123456789",
     turnId: "turn_123456789",
     model: "gpt-5.1-codex",
@@ -59,6 +65,8 @@ test("renderTaskCard renders running status with thread and turn footer", () => 
   assert.match(card.elements.at(-1).elements[0].content, /ctx: 25%/);
   assert.match(card.elements.at(-1).elements[0].content, /model: gpt-5.1-codex/);
   assert.match(card.elements.at(-1).elements[0].content, /fca: 0.2.0-test/);
+  assert.match(card.elements[0].text.content, /当前阶段: 执行命令/);
+  assert.match(card.elements[0].text.content, /正在检查 README/);
 });
 
 test("renderTaskCard renders completed status with final text", () => {
@@ -68,6 +76,12 @@ test("renderTaskCard renders completed status with final text", () => {
     cwd: "F:\\development\\f-codex",
     summaryText: "summary",
     finalText: "最终回复",
+    lastStage: {
+      id: "item_123",
+      type: "fileChange",
+      status: "completed",
+      label: "处理文件变更",
+    },
     threadId: "thr_123",
     turnId: "turn_123",
     errorSummary: null,
@@ -75,7 +89,7 @@ test("renderTaskCard renders completed status with final text", () => {
 
   assert.equal(card.header.title.content, "已完成");
   assert.equal(card.header.template, "green");
-  assert.equal(card.elements[0].text.content, "最终回复");
+  assert.equal(card.elements[0].text.content, "最近阶段: 处理文件变更\n\n最终回复");
 });
 
 test("renderTaskCard renders failed status with readable error", () => {

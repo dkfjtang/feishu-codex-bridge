@@ -37,6 +37,8 @@ test("new runtime task starts queued with Feishu context", () => {
     errorSummary: null,
     errorType: null,
     tokenUsage: null,
+    currentStage: null,
+    lastStage: null,
   });
 });
 
@@ -67,6 +69,80 @@ test("agent message deltas update summary and final output", () => {
 
   assert.equal(task.snapshot().summaryText, "abcdefgh...");
   assert.equal(task.snapshot().finalText, "abcdefghijk");
+});
+
+test("item events update safe stage diagnostics", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.handleCodexEvent({
+    method: "item/started",
+    params: {
+      threadId: "thr_123",
+      turnId: "turn_123",
+      item: {
+        id: "item_123",
+        type: "commandExecution",
+        status: "inProgress",
+        command: "cat secret.txt",
+      },
+    },
+  });
+
+  let snapshot = task.snapshot();
+  assert.equal(snapshot.status, "running");
+  assert.equal(snapshot.threadId, "thr_123");
+  assert.equal(snapshot.turnId, "turn_123");
+  assert.deepEqual(snapshot.currentStage, {
+    id: "item_123",
+    type: "commandExecution",
+    status: "inProgress",
+    label: "执行命令",
+  });
+
+  task.handleCodexEvent({
+    method: "item/completed",
+    params: {
+      item: {
+        id: "item_123",
+        type: "commandExecution",
+        status: "completed",
+        command: "cat secret.txt",
+      },
+    },
+  });
+
+  snapshot = task.snapshot();
+  assert.equal(snapshot.currentStage, null);
+  assert.deepEqual(snapshot.lastStage, {
+    id: "item_123",
+    type: "commandExecution",
+    status: "completed",
+    label: "执行命令",
+  });
+});
+
+test("tool item stage uses tool name without arguments", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.handleCodexEvent({
+    method: "item/started",
+    params: {
+      item: {
+        id: "item_123",
+        type: "dynamicToolCall",
+        status: "inProgress",
+        tool: "shell_command",
+        arguments: { command: "cat secret.txt" },
+      },
+    },
+  });
+
+  assert.deepEqual(task.snapshot().currentStage, {
+    id: "item_123",
+    type: "dynamicToolCall",
+    status: "inProgress",
+    label: "调用工具 shell_command",
+  });
 });
 
 test("turn completion marks task completed", () => {

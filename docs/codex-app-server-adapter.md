@@ -155,9 +155,9 @@ request_id -> resolver
 | app-server notification | Runtime Task 动作 | 飞书动作 |
 | --- | --- | --- |
 | `turn/started` | status = running | 更新任务卡片为执行中 |
-| `item/started` | 记录当前 item | 可低频更新阶段摘要 |
+| `item/started` | 记录当前 item 类型 | 更新安全阶段标签，不展示命令、参数或完整路径 |
 | `item/agentMessage/delta` | 追加到 output buffer | 节流更新卡片正文摘要 |
-| `item/completed` | 记录 item 完成 | 更新最近阶段 |
+| `item/completed` | 记录 item 完成 | 更新最近阶段安全标签 |
 | `thread/tokenUsage/updated` | 记录 token usage | 更新 footer 的 tokens / cache / context 指标 |
 | approval 类事件 | status = waiting_approval | 后续生成审批卡片 |
 | `turn/completed` success | status = completed | 更新最终卡片 |

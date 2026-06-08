@@ -19,6 +19,8 @@ export class RuntimeTask {
   #errorSummary = null;
   #errorType = null;
   #tokenUsage = null;
+  #currentStage = null;
+  #lastStage = null;
   #output;
 
   constructor({
@@ -73,8 +75,14 @@ export class RuntimeTask {
           this.#status = "running";
         }
         break;
+      case "item/started":
+        this.#handleItemStarted(event.params);
+        break;
       case "item/agentMessage/delta":
         this.#output.appendDelta(event.params?.delta);
+        break;
+      case "item/completed":
+        this.#handleItemCompleted(event.params);
         break;
       case "turn/completed":
         this.#handleTurnCompleted(event.params);
@@ -109,7 +117,38 @@ export class RuntimeTask {
       errorSummary: this.#errorSummary,
       errorType: this.#errorType,
       tokenUsage: this.#tokenUsage,
+      currentStage: this.#currentStage,
+      lastStage: this.#lastStage,
     };
+  }
+
+  #handleItemStarted(params = {}) {
+    if (params.threadId) {
+      this.#threadId = params.threadId;
+    }
+    if (params.turnId) {
+      this.#turnId = params.turnId;
+    }
+    if (this.#status === "queued") {
+      this.#status = "running";
+    }
+
+    this.#currentStage = stageFromItem(params.item, "running");
+  }
+
+  #handleItemCompleted(params = {}) {
+    if (params.threadId) {
+      this.#threadId = params.threadId;
+    }
+    if (params.turnId) {
+      this.#turnId = params.turnId;
+    }
+
+    const completedStage = stageFromItem(params.item, "completed");
+    this.#lastStage = completedStage;
+    if (!this.#currentStage || this.#currentStage.id === completedStage.id) {
+      this.#currentStage = null;
+    }
   }
 
   #handleTokenUsageUpdated(params = {}) {
@@ -138,5 +177,48 @@ export class RuntimeTask {
 
   #elapsedMs() {
     return (this.#completedAt ?? this.#now()) - this.#startedAt;
+  }
+}
+
+function stageFromItem(item = {}, status) {
+  return {
+    id: item.id ?? null,
+    type: item.type ?? "unknown",
+    status: item.status ?? status,
+    label: stageLabel(item),
+  };
+}
+
+function stageLabel(item = {}) {
+  switch (item.type) {
+    case "agentMessage":
+      return "生成回复";
+    case "plan":
+      return "更新计划";
+    case "reasoning":
+      return "推理分析";
+    case "commandExecution":
+      return "执行命令";
+    case "fileChange":
+      return "处理文件变更";
+    case "mcpToolCall":
+      return item.tool ? `调用 MCP 工具 ${item.tool}` : "调用 MCP 工具";
+    case "dynamicToolCall":
+      return item.tool ? `调用工具 ${item.tool}` : "调用工具";
+    case "webSearch":
+      return "检索网页";
+    case "imageView":
+      return "查看图片";
+    case "imageGeneration":
+      return "生成图片";
+    case "contextCompaction":
+      return "压缩上下文";
+    case "collabAgentToolCall":
+      return "协作智能体任务";
+    case "userMessage":
+    case "hookPrompt":
+      return "读取输入";
+    default:
+      return "处理阶段";
   }
 }

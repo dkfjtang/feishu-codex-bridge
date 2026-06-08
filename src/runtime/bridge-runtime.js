@@ -192,7 +192,7 @@ export class BridgeRuntime {
     const completed = new Promise((resolve, reject) => {
       unsubscribe = this.#session.onEvent((event) => {
         task.handleCodexEvent(event);
-        if (event.method === "item/agentMessage/delta") {
+        if (shouldScheduleRunningUpdate(event.method)) {
           runningUpdates.schedule();
         }
         if (event.method === "turn/completed") {
@@ -261,6 +261,7 @@ export class BridgeRuntime {
       elapsedMs: snapshot.elapsedMs,
       errorSummary: snapshot.errorSummary,
       errorType: snapshot.errorType,
+      ...stageLogFields(snapshot),
       ...tokenUsageLogFields(snapshot.tokenUsage),
       ...extraFields,
     };
@@ -279,6 +280,29 @@ export class BridgeRuntime {
 
     return this.#groupDeveloperInstructions.get(chatId) ?? null;
   }
+}
+
+function stageLogFields(snapshot) {
+  const fields = {};
+  if (snapshot.currentStage) {
+    fields.currentStage = snapshot.currentStage.label;
+    fields.currentStageType = snapshot.currentStage.type;
+  }
+  if (snapshot.lastStage) {
+    fields.lastStage = snapshot.lastStage.label;
+    fields.lastStageType = snapshot.lastStage.type;
+  }
+
+  return fields;
+}
+
+function shouldScheduleRunningUpdate(method) {
+  return [
+    "item/started",
+    "item/agentMessage/delta",
+    "item/completed",
+    "thread/tokenUsage/updated",
+  ].includes(method);
 }
 
 function tokenUsageLogFields(tokenUsage) {

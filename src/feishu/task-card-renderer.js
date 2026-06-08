@@ -53,10 +53,25 @@ function cardBody(snapshot) {
   }
 
   if (snapshot.status === "completed") {
-    return truncate(snapshot.finalText || snapshot.summaryText, BODY_LIMIT);
+    return truncate(joinBody([stageText(snapshot, "最近阶段"), snapshot.finalText || snapshot.summaryText]), BODY_LIMIT);
   }
 
-  return truncate(snapshot.summaryText, BODY_LIMIT);
+  return truncate(joinBody([stageText(snapshot), snapshot.summaryText]), BODY_LIMIT);
+}
+
+function stageText(snapshot, fallbackPrefix = "阶段") {
+  if (snapshot.currentStage?.label) {
+    return `当前阶段: ${snapshot.currentStage.label}`;
+  }
+  if (snapshot.lastStage?.label) {
+    return `${fallbackPrefix}: ${snapshot.lastStage.label}`;
+  }
+
+  return null;
+}
+
+function joinBody(parts) {
+  return parts.filter(Boolean).join("\n\n");
 }
 
 function footerText(snapshot) {

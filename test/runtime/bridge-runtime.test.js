@@ -305,6 +305,68 @@ test("handleTextMessage throttles running card updates while streaming deltas", 
   }
 });
 
+test("handleTextMessage schedules running updates for item stage events", async () => {
+  let emitEvent;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  const syncStageLabels = [];
+  let timeoutCallback;
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncStageLabels.push(task.snapshot().currentStage?.label ?? null);
+        task.attachCard("om_123");
+      },
+    },
+    runningUpdateThrottleMs: 1000,
+    now: () => 0,
+    setTimeoutFn: (callback) => {
+      timeoutCallback = callback;
+      return "timer";
+    },
+    clearTimeoutFn: () => {},
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+
+  emitEvent({
+    method: "item/started",
+    params: {
+      item: {
+        id: "item_123",
+        type: "commandExecution",
+        status: "inProgress",
+        command: "cat secret.txt",
+      },
+    },
+  });
+  await Promise.resolve();
+  await timeoutCallback();
+
+  emitEvent({ method: "turn/completed", params: { status: "success" } });
+  await pending;
+
+  assert.deepEqual(syncStageLabels.slice(0, 2), [null, "执行命令"]);
+});
+
 test("handleTextMessage keeps turn alive when a running card update fails", async () => {
   let emitEvent;
   let markEventReady;
@@ -638,6 +700,62 @@ test("handleTextMessage logs token usage diagnostics", async () => {
   assert.equal(logEntries.at(-1).tokenOutput, 250);
   assert.equal(logEntries.at(-1).tokenReasoningOutput, 50);
   assert.equal(logEntries.at(-1).modelContextWindow, 8000);
+});
+
+test("handleTextMessage logs stage diagnostics without raw item details", async () => {
+  let emitEvent;
+  const logEntries = [];
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        return () => {};
+      },
+      startTurnHook: () => {
+        queueMicrotask(() => {
+          emitEvent({
+            method: "item/started",
+            params: {
+              item: {
+                id: "item_123",
+                type: "commandExecution",
+                status: "inProgress",
+                command: "cat secret.txt",
+              },
+            },
+          });
+          emitEvent({
+            method: "item/completed",
+            params: {
+              item: {
+                id: "item_123",
+                type: "commandExecution",
+                status: "completed",
+                command: "cat secret.txt",
+              },
+            },
+          });
+          emitEvent({ method: "turn/completed", params: { status: "success" } });
+        });
+      },
+    }),
+    cardController: fakeCardController(),
+    logger: fakeLogger(logEntries),
+  });
+
+  await runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+
+  assert.equal(logEntries.at(-1).event, "task.completed");
+  assert.equal(logEntries.at(-1).lastStage, "执行命令");
+  assert.equal(logEntries.at(-1).lastStageType, "commandExecution");
+  assert.equal(JSON.stringify(logEntries.at(-1)).includes("secret.txt"), false);
 });
 
 test("handleTextMessage logs thrown turn errors with trace fields", async () => {

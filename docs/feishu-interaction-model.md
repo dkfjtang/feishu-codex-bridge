@@ -147,9 +147,9 @@ footer 只展示排障有用、但不泄露敏感信息的字段。
 | --- | --- |
 | `thread/start` result | 写入 thread 映射，更新 footer |
 | `turn/started` | 卡片状态改为 running |
-| `item/started` | 更新当前阶段摘要 |
+| `item/started` | 更新当前阶段安全标签 |
 | `item/agentMessage/delta` | 聚合文本 delta，不逐字更新 |
-| `item/completed` | 更新阶段完成摘要 |
+| `item/completed` | 更新最近完成阶段安全标签 |
 | `thread/tokenUsage/updated` | 更新 footer token / cache / context 指标 |
 | approval 类事件 | 卡片状态改为 waiting_approval |
 | `turn/completed` success | 卡片状态改为 completed |
@@ -168,6 +168,8 @@ MVP 策略：
 - 每 3 到 5 秒最多更新一次运行中摘要。
 - 完成或失败时必须更新一次最终状态。
 - 卡片发送或更新失败时做有限重试；重试后仍失败则进入 runtime 错误日志和失败链路。
+
+阶段标签只展示 item 类型和安全工具名，不展示命令正文、工具参数、完整路径或原始输出。
 
 这样既能体现持续执行，又避免消息 API 频率和用户体验问题。
 
