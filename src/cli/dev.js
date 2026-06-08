@@ -81,19 +81,14 @@ function registerShutdownHandlers({ signalRegistrar, logger, app, feishuTranspor
 
     shutdownPromise = (async () => {
       logger.info("bridge.shutdown_requested", { signal });
-      try {
-        try {
-          if (typeof app.stop === "function") {
-            await app.stop();
-          }
-        } finally {
-          if (typeof feishuTransport.stop === "function") {
-            await feishuTransport.stop();
-          }
-        }
-      } catch (error) {
+      const failures = [];
+      await stopShutdownResource("app", app, failures);
+      await stopShutdownResource("transport", feishuTransport, failures);
+      if (failures.length > 0) {
+        const error = failures[0].error;
         logger.error("bridge.shutdown_failed", {
           signal,
+          failedResources: failures.map((failure) => failure.resource),
           ...errorLogFields(error),
         });
         throw error;
@@ -106,6 +101,18 @@ function registerShutdownHandlers({ signalRegistrar, logger, app, feishuTranspor
 
   signalRegistrar.on("SIGINT", () => shutdown("SIGINT"));
   signalRegistrar.on("SIGTERM", () => shutdown("SIGTERM"));
+}
+
+async function stopShutdownResource(resource, target, failures) {
+  if (typeof target.stop !== "function") {
+    return;
+  }
+
+  try {
+    await target.stop();
+  } catch (error) {
+    failures.push({ resource, error });
+  }
 }
 
 function errorLogFields(error) {

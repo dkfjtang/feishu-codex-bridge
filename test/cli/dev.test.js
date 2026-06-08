@@ -271,3 +271,67 @@ test("runDev logs shutdown failures and still stops transport", async () => {
   );
   assert.equal(logs.some((entry) => entry.event === "bridge.stopped"), false);
 });
+
+test("runDev reports all failed shutdown resources without masking the first error", async () => {
+  const calls = [];
+  const signalHandlers = {};
+  let logText = "";
+  const transport = {
+    probeBot: async () => ({ ok: true, botOpenId: "ou_bot", botName: "Codex" }),
+    startMessageListener: async () => {
+      calls.push("listen");
+    },
+    stop: async () => {
+      calls.push("transport.stop");
+      throw new Error("transport stop failed");
+    },
+  };
+  const app = {
+    config: { defaultWorkdir: "F:\\development\\f-codex" },
+    start: async () => {
+      calls.push("app.start");
+    },
+    stop: async () => {
+      calls.push("app.stop");
+      throw new Error("app stop failed");
+    },
+  };
+
+  const exitCode = await runDev({
+    env: {
+      FEISHU_APP_ID: "cli_123",
+      FEISHU_APP_SECRET: "secret",
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    output: { write: () => {} },
+    errorOutput: { write: (text) => (logText += text) },
+    transportFactory: () => transport,
+    appFactory: () => app,
+    signalRegistrar: {
+      on: (signal, handler) => {
+        signalHandlers[signal] = handler;
+      },
+    },
+  });
+
+  assert.equal(exitCode, 0);
+  await assert.rejects(() => signalHandlers.SIGTERM(), /app stop failed/);
+
+  assert.deepEqual(calls, ["app.start", "listen", "app.stop", "transport.stop"]);
+  const logs = logText
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  const failed = logs.find((entry) => entry.event === "bridge.shutdown_failed");
+  assert.deepEqual(failed, {
+    timestamp: failed.timestamp,
+    level: "error",
+    event: "bridge.shutdown_failed",
+    signal: "SIGTERM",
+    failedResources: ["app", "transport"],
+    errorSummary: "app stop failed",
+    errorName: "Error",
+  });
+});

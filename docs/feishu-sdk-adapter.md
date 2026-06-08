@@ -74,7 +74,7 @@ TaskCardController
 
 `FeishuSdkTransport.startMessageListener()` 重建 listener 前会先关闭旧 `WSClient`，避免重复长连接残留；如果新 `WSClient.start()` 失败，也会 best-effort 关闭半初始化 client，且保留原始启动失败向上抛出。
 
-`runDev` 会注册 `SIGINT` / `SIGTERM` 退出信号。收到信号后，Bridge 先停止 Codex app-server，再 best-effort 调用 transport `stop()`；SDK transport 会通过 `WSClient.close({})` 关闭已启动的长连接，并记录关闭成功或失败。停机失败会记录 `bridge.shutdown_failed`，但不会输出额外敏感信息。
+`runDev` 会注册 `SIGINT` / `SIGTERM` 退出信号。收到信号后，Bridge 先停止 Codex app-server，再 best-effort 调用 transport `stop()`；SDK transport 会通过 `WSClient.close({})` 关闭已启动的长连接，并记录关闭成功或失败。停机失败会记录 `bridge.shutdown_failed`、首个错误摘要和 `failedResources`，但不会输出额外敏感信息。
 
 ## 卡片更新重试
 
