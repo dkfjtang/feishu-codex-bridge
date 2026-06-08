@@ -34,6 +34,7 @@ export function checkConfig(env = process.env) {
     summary: {
       allowedOpenIdCount: config.allowedOpenIds.length,
       allowedGroupChatIdCount: config.allowedGroupChatIds.length,
+      groupSenderPolicyCount: Object.keys(config.groupSenderOpenIds).length,
       allowedWorkdirCount: config.allowedWorkdirs.length,
       appVersion: config.appVersion,
       codexBin: config.codexBin,
@@ -71,6 +72,7 @@ export async function runCheckConfig({
   output.write("Configuration check passed.\n");
   output.write(`allowedOpenIds: ${result.summary.allowedOpenIdCount}\n`);
   output.write(`allowedGroupChatIds: ${result.summary.allowedGroupChatIdCount}\n`);
+  output.write(`groupSenderPolicies: ${result.summary.groupSenderPolicyCount}\n`);
   output.write(`allowedWorkdirs: ${result.summary.allowedWorkdirCount}\n`);
   output.write(`defaultWorkdir: ${result.summary.defaultWorkdir}\n`);
   output.write(`codexBin: ${result.summary.codexBin}\n`);

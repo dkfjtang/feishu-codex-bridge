@@ -275,6 +275,48 @@ test("createBridgeApp passes allowed group chat ids to event handler", async () 
   assert.deepEqual(result, { status: "skipped", reason: "Feishu group chat is not allowed" });
 });
 
+test("createBridgeApp passes group sender policy to event handler", async () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_allowed,ou_denied",
+      FCA_GROUP_SENDER_OPEN_IDS: "oc_allowed=ou_allowed",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    botOpenId: "ou_bot",
+    codexAppServerFactory: () => ({
+      start: async () => ({
+        onEvent: () => () => {},
+      }),
+    }),
+    feishuTransport: {},
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
+  });
+
+  await app.start();
+  const result = await app.eventHandler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_denied" } },
+      message: {
+        message_id: "om_123",
+        chat_id: "oc_allowed",
+        chat_type: "group",
+        message_type: "text",
+        content: JSON.stringify({
+          text: "@_user_1 hello",
+          mentions: [{ key: "@_user_1", id: { open_id: "ou_bot" } }],
+        }),
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "skipped", reason: "Feishu group sender is not allowed" });
+});
+
 function emptyMessageDedupStore() {
   return {
     has: async () => false,

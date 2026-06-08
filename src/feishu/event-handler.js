@@ -8,6 +8,7 @@ export class FeishuEventHandler {
   #expectedAppId;
   #botOpenId;
   #allowedGroupChatIds;
+  #groupSenderOpenIds;
   #now;
   #maxEventAgeMs;
   #messageDedupStore;
@@ -19,6 +20,7 @@ export class FeishuEventHandler {
     expectedAppId = null,
     botOpenId = null,
     allowedGroupChatIds = [],
+    groupSenderOpenIds = {},
     now = () => Date.now(),
     maxEventAgeMs = 5 * 60 * 1000,
     messageDedupStore = null,
@@ -27,6 +29,7 @@ export class FeishuEventHandler {
     this.#expectedAppId = expectedAppId;
     this.#botOpenId = botOpenId;
     this.#allowedGroupChatIds = new Set(allowedGroupChatIds);
+    this.#groupSenderOpenIds = mapGroupSenderOpenIds(groupSenderOpenIds);
     this.#now = now;
     this.#maxEventAgeMs = maxEventAgeMs;
     this.#messageDedupStore = messageDedupStore;
@@ -50,6 +53,9 @@ export class FeishuEventHandler {
 
     if (!this.#canUseChat(message)) {
       return { status: "skipped", reason: "Feishu group chat is not allowed" };
+    }
+    if (!this.#canUseGroupSender(message)) {
+      return { status: "skipped", reason: "Feishu group sender is not allowed" };
     }
 
     if (this.#seenMessageIds.has(message.messageId) || (await this.#hasSeenMessage(message.messageId))) {
@@ -131,8 +137,29 @@ export class FeishuEventHandler {
 
     return this.#allowedGroupChatIds.has(message.chatId);
   }
+
+  #canUseGroupSender(message) {
+    if (message.chatType !== "group") {
+      return true;
+    }
+
+    const allowedOpenIds = this.#groupSenderOpenIds.get(message.chatId);
+    if (!allowedOpenIds) {
+      return true;
+    }
+
+    return allowedOpenIds.has(message.openId);
+  }
 }
 
 function isCancelText(text) {
   return /^(取消|停止|终止|中止|stop|abort|cancel|cancel task|stop task)$/i.test(text.trim());
+}
+
+function mapGroupSenderOpenIds(policy) {
+  const result = new Map();
+  for (const [chatId, openIds] of Object.entries(policy ?? {})) {
+    result.set(chatId, new Set(openIds));
+  }
+  return result;
 }

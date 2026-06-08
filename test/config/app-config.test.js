@@ -7,6 +7,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   const config = loadConfig({
     FCA_ALLOWED_OPEN_IDS: "ou_1, ou_2",
     FCA_ALLOWED_GROUP_CHAT_IDS: "oc_1, oc_2",
+    FCA_GROUP_SENDER_OPEN_IDS: "oc_1=ou_1,ou_2; oc_2=ou_2",
     FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex;F:\\development\\IDSS",
     FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
     FEISHU_APP_ID: "cli_123",
@@ -21,6 +22,10 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
   assert.deepEqual(config.allowedGroupChatIds, ["oc_1", "oc_2"]);
+  assert.deepEqual(config.groupSenderOpenIds, {
+    oc_1: ["ou_1", "ou_2"],
+    oc_2: ["ou_2"],
+  });
   assert.deepEqual(config.allowedWorkdirs, [
     "F:\\development\\f-codex",
     "F:\\development\\IDSS",
@@ -41,6 +46,7 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
 
   assert.deepEqual(config.allowedOpenIds, []);
   assert.deepEqual(config.allowedGroupChatIds, []);
+  assert.deepEqual(config.groupSenderOpenIds, {});
   assert.deepEqual(config.allowedWorkdirs, []);
   assert.equal(config.defaultWorkdir, null);
   assert.equal(config.feishuAppId, null);
@@ -66,5 +72,12 @@ test("loadConfig rejects non-positive message dedup ttl", () => {
   assert.throws(
     () => loadConfig({ FCA_MESSAGE_DEDUP_TTL_SECONDS: "0" }),
     /FCA_MESSAGE_DEDUP_TTL_SECONDS must be a positive integer/,
+  );
+});
+
+test("loadConfig rejects malformed group sender policy", () => {
+  assert.throws(
+    () => loadConfig({ FCA_GROUP_SENDER_OPEN_IDS: "oc_1" }),
+    /FCA_GROUP_SENDER_OPEN_IDS entries must use chat_id=open_id/,
   );
 });

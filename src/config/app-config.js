@@ -24,6 +24,7 @@ export function loadConfig(env = process.env) {
     feishuAppId: env.FEISHU_APP_ID?.trim() || null,
     allowedOpenIds: splitList(env.FCA_ALLOWED_OPEN_IDS, ","),
     allowedGroupChatIds: splitList(env.FCA_ALLOWED_GROUP_CHAT_IDS, ","),
+    groupSenderOpenIds: parseGroupSenderOpenIds(env.FCA_GROUP_SENDER_OPEN_IDS),
     allowedWorkdirs,
     defaultWorkdir: env.FCA_DEFAULT_WORKDIR?.trim() || null,
     codexBin: env.FCA_CODEX_BIN?.trim() || DEFAULT_CODEX_BIN,
@@ -61,4 +62,33 @@ function parsePositiveInteger(value, fallback, name) {
   }
 
   return parsed;
+}
+
+function parseGroupSenderOpenIds(value) {
+  if (!value) {
+    return {};
+  }
+
+  const result = {};
+  for (const rawEntry of value.split(";")) {
+    const entry = rawEntry.trim();
+    if (!entry) {
+      continue;
+    }
+
+    const separatorIndex = entry.indexOf("=");
+    if (separatorIndex <= 0 || separatorIndex === entry.length - 1) {
+      throw new Error("FCA_GROUP_SENDER_OPEN_IDS entries must use chat_id=open_id[,open_id]");
+    }
+
+    const chatId = entry.slice(0, separatorIndex).trim();
+    const openIds = splitList(entry.slice(separatorIndex + 1), ",");
+    if (!chatId || openIds.length === 0) {
+      throw new Error("FCA_GROUP_SENDER_OPEN_IDS entries must use chat_id=open_id[,open_id]");
+    }
+
+    result[chatId] = openIds;
+  }
+
+  return result;
 }

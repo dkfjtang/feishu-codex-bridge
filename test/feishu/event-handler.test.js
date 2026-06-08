@@ -153,6 +153,58 @@ test("handleMessageReceive allows mentioned group text when group chat is allowe
   assert.deepEqual(result, { status: "handled", taskStatus: "completed" });
 });
 
+test("handleMessageReceive skips mentioned group text when sender is not allowed for group", async () => {
+  const handler = new FeishuEventHandler({
+    botOpenId: "ou_bot",
+    groupSenderOpenIds: { oc_allowed: ["ou_allowed"] },
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not be called");
+      },
+      cancelActiveTask: async () => {
+        throw new Error("should not cancel from denied sender");
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    groupMentionPayload({
+      messageId: "om_123",
+      chatId: "oc_allowed",
+      text: "@_user_1 停止",
+      openId: "ou_denied",
+    }),
+  );
+
+  assert.deepEqual(result, { status: "skipped", reason: "Feishu group sender is not allowed" });
+});
+
+test("handleMessageReceive allows mentioned group text when sender is allowed for group", async () => {
+  const calls = [];
+  const handler = new FeishuEventHandler({
+    botOpenId: "ou_bot",
+    groupSenderOpenIds: { oc_allowed: ["ou_allowed"] },
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(message);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    groupMentionPayload({
+      messageId: "om_123",
+      chatId: "oc_allowed",
+      openId: "ou_allowed",
+    }),
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].openId, "ou_allowed");
+  assert.deepEqual(result, { status: "handled", taskStatus: "completed" });
+});
+
 test("handleMessageReceive serializes messages in the same chat", async () => {
   const calls = [];
   let markFirstStarted;
@@ -349,10 +401,10 @@ function textPayload({ messageId, chatId, text = "hello" }) {
   };
 }
 
-function groupMentionPayload({ messageId, chatId, text = "@_user_1 hello" }) {
+function groupMentionPayload({ messageId, chatId, text = "@_user_1 hello", openId = "ou_123" }) {
   return {
     event: {
-      sender: { sender_id: { open_id: "ou_123" } },
+      sender: { sender_id: { open_id: openId } },
       message: {
         message_id: messageId,
         chat_id: chatId,
