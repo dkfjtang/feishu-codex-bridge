@@ -42,6 +42,10 @@ test("prepareAttachmentDownloadRequest builds sanitized adapter input", () => {
 test("disabled attachment download adapter never downloads content", async () => {
   const adapter = createDisabledAttachmentDownloadAdapter();
 
+  assert.deepEqual(adapter.getStatus(), {
+    status: "disabled",
+  });
+
   const result = await adapter.downloadAttachment({
     attachmentKind: "image",
     approvalId: "attachment-om_image",

@@ -159,7 +159,7 @@ Done 标准：
 - 普通群聊文本仍跳过；进入 `BridgeRuntime` 后仍使用飞书发送者 `open_id` 白名单作为权限依据。
 - 群聊任务继续按 `chat_id` 串行，避免同一群内多个 Codex turn 并发打乱卡片状态。
 - 私聊非文本消息已具备安全提示前置闭环，为后续文件下载和回传能力保留清晰边界。
-- `FCA_FEISHU_FILE_INPUTS_ENABLED` 已进入配置检查和 diagnostics，只暴露布尔开关状态，不暴露附件 key、文件名、路径或内容。
+- `FCA_FEISHU_FILE_INPUTS_ENABLED` 已进入配置检查和 diagnostics，只暴露布尔开关状态；附件下载 adapter 也进入 diagnostics，但只暴露 `status`。这些诊断不暴露附件 key、文件名、路径或内容。
 - 非文本消息已先进入脱敏 envelope：只保留 `message_id`、`chat_id`、`chat_type`、`message_type` 和 `attachmentKind` 枚举，不解析附件 `content`。
 - 附件输入策略已独立为决策函数，当前只产出 `skip` / `notify_disabled` / `notify_unsupported` / `eligible`，`eligible` 仍被事件层固定提示拦截，不触发下载。
 - 附件下载前的脱敏审批摘要已定义，包含固定风险、附件类型、短消息 id 和会话类型；并可转换为现有 waiting approval 卡片模型，生成脱敏 pending id、keys 和审计字段。当前只用于后续审批/审计准备，不登记真实 pending map、不触发真实审批按钮回调。

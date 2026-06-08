@@ -170,7 +170,15 @@ test("runDev logs sanitized bridge diagnostics after listener starts", async () 
         appServer: { active: true, secret: "should_not_escape" },
         runtime: { active: true },
         eventHandler: { active: true },
-        features: { feishuFileInputsEnabled: true, fileKey: "should_not_escape" },
+        features: {
+          feishuFileInputsEnabled: true,
+          fileKey: "should_not_escape",
+          attachmentDownloadAdapter: {
+            status: "configured",
+            fileKey: "should_not_escape",
+            fileName: "secret.txt",
+          },
+        },
         feishu: {
           messageListener: {
             active: true,
@@ -199,7 +207,10 @@ test("runDev logs sanitized bridge diagnostics after listener starts", async () 
     appServer: { active: true },
     runtime: { active: true },
     eventHandler: { active: true },
-    features: { feishuFileInputsEnabled: true },
+    features: {
+      feishuFileInputsEnabled: true,
+      attachmentDownloadAdapter: { status: "configured" },
+    },
     feishu: {
       messageListener: {
         active: true,
@@ -212,6 +223,7 @@ test("runDev logs sanitized bridge diagnostics after listener starts", async () 
     },
   });
   assert.equal(logText.includes("should_not_escape"), false);
+  assert.equal(logText.includes("secret.txt"), false);
 });
 
 function withoutLogger(options) {

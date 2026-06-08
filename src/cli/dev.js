@@ -133,7 +133,10 @@ function sanitizeBridgeDiagnostics(diagnostics) {
       appServer: { active: null },
       runtime: { active: null },
       eventHandler: { active: null },
-      features: { feishuFileInputsEnabled: null },
+      features: {
+        feishuFileInputsEnabled: null,
+        attachmentDownloadAdapter: { status: "unknown" },
+      },
       feishu: { messageListener: null },
     };
   }
@@ -150,6 +153,9 @@ function sanitizeBridgeDiagnostics(diagnostics) {
     },
     features: {
       feishuFileInputsEnabled: booleanOrNull(diagnostics.features?.feishuFileInputsEnabled),
+      attachmentDownloadAdapter: sanitizeAttachmentDownloadAdapterStatus(
+        diagnostics.features?.attachmentDownloadAdapter,
+      ),
     },
     feishu: {
       messageListener: sanitizeMessageListenerStatus(diagnostics.feishu?.messageListener),
@@ -171,6 +177,16 @@ function sanitizeMessageListenerStatus(status) {
     reconnectAttempts: Number.isFinite(status.reconnectAttempts)
       ? status.reconnectAttempts
       : null,
+  };
+}
+
+function sanitizeAttachmentDownloadAdapterStatus(status) {
+  if (!status || typeof status !== "object") {
+    return { status: "unknown" };
+  }
+
+  return {
+    status: typeof status.status === "string" ? status.status : "unknown",
   };
 }
 

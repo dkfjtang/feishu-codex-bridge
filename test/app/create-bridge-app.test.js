@@ -283,7 +283,10 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: false },
     runtime: { active: false },
     eventHandler: { active: false },
-    features: { feishuFileInputsEnabled: false },
+    features: {
+      feishuFileInputsEnabled: false,
+      attachmentDownloadAdapter: { status: "disabled" },
+    },
     feishu: { messageListener: sanitizedWsStatus },
   });
 
@@ -293,7 +296,10 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: true },
     runtime: { active: true },
     eventHandler: { active: true },
-    features: { feishuFileInputsEnabled: false },
+    features: {
+      feishuFileInputsEnabled: false,
+      attachmentDownloadAdapter: { status: "disabled" },
+    },
     feishu: { messageListener: sanitizedWsStatus },
   });
   assert.equal(JSON.stringify(app.getDiagnostics()).includes("should_not_escape"), false);
@@ -304,9 +310,40 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: false },
     runtime: { active: false },
     eventHandler: { active: false },
-    features: { feishuFileInputsEnabled: false },
+    features: {
+      feishuFileInputsEnabled: false,
+      attachmentDownloadAdapter: { status: "disabled" },
+    },
     feishu: { messageListener: sanitizedWsStatus },
   });
+});
+
+test("createBridgeApp diagnostics sanitize attachment download adapter status", () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    attachmentDownloadAdapterFactory: () => ({
+      getStatus: () => ({
+        status: "configured",
+        fileKey: "should_not_escape",
+        fileName: "secret.txt",
+        path: "F:\\secret.txt",
+      }),
+      downloadAttachment: async () => ({ status: "configured" }),
+    }),
+    codexAppServerFactory: () => ({ start: async () => ({}) }),
+    feishuTransport: {},
+  });
+
+  assert.deepEqual(app.getDiagnostics().features, {
+    feishuFileInputsEnabled: false,
+    attachmentDownloadAdapter: { status: "configured" },
+  });
+  assert.equal(JSON.stringify(app.getDiagnostics()).includes("should_not_escape"), false);
+  assert.equal(JSON.stringify(app.getDiagnostics()).includes("secret.txt"), false);
 });
 
 test("createBridgeApp diagnostics tolerate transports without WS status", () => {

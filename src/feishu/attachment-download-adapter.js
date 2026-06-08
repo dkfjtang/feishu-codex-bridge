@@ -12,6 +12,11 @@ export function prepareAttachmentDownloadRequest(envelope, pendingApproval) {
 
 export function createDisabledAttachmentDownloadAdapter() {
   return {
+    getStatus() {
+      return {
+        status: "disabled",
+      };
+    },
     async downloadAttachment(request) {
       return {
         status: "disabled",

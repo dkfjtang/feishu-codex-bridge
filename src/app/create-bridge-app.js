@@ -7,12 +7,14 @@ import { FileThreadStore, SqliteThreadStore } from "../store/thread-store.js";
 import { FileMessageDedupStore } from "../store/message-dedup-store.js";
 import { TaskCardController } from "../feishu/task-card-controller.js";
 import { loadConfig } from "../config/app-config.js";
+import { createDisabledAttachmentDownloadAdapter } from "../feishu/attachment-download-adapter.js";
 
 export function createBridgeApp({
   env = process.env,
   botOpenId = null,
   codexAppServerFactory = (options) => new CodexAppServerProcess(options),
   feishuTransport,
+  attachmentDownloadAdapterFactory = createDisabledAttachmentDownloadAdapter,
   logger = null,
   threadStoreFactory = createThreadStore,
   messageDedupStoreFactory = (config) =>
@@ -29,6 +31,7 @@ export function createBridgeApp({
   });
   const threadStore = threadStoreFactory(config);
   const messageDedupStore = messageDedupStoreFactory(config);
+  const attachmentDownloadAdapter = attachmentDownloadAdapterFactory(config);
   const feishuMessageClient = new FeishuMessageClient({
     transport: feishuTransport,
     cardChannel: config.cardChannel,
@@ -64,6 +67,9 @@ export function createBridgeApp({
         },
         features: {
           feishuFileInputsEnabled: config.feishuFileInputsEnabled,
+          attachmentDownloadAdapter: sanitizeAttachmentDownloadAdapterStatus(
+            attachmentDownloadAdapter?.getStatus?.(),
+          ),
         },
         feishu: {
           messageListener: sanitizeMessageListenerStatus(
@@ -95,6 +101,7 @@ export function createBridgeApp({
         messageDedupStore,
         unsupportedMessageClient: feishuMessageClient,
         feishuFileInputsEnabled: config.feishuFileInputsEnabled,
+        attachmentDownloadAdapter,
         logger,
       });
       return eventHandler;
@@ -116,6 +123,16 @@ export function createThreadStore(config) {
   }
 
   return new FileThreadStore({ filePath: config.threadStorePath });
+}
+
+function sanitizeAttachmentDownloadAdapterStatus(status) {
+  if (!status || typeof status !== "object") {
+    return { status: "unknown" };
+  }
+
+  return {
+    status: typeof status.status === "string" ? status.status : "unknown",
+  };
 }
 
 function sanitizeMessageListenerStatus(status) {
