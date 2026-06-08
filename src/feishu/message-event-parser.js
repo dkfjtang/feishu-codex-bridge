@@ -37,6 +37,37 @@ export function parseMessageReceiveEvent(payload, { botOpenId = null } = {}) {
   };
 }
 
+export function parseUnsupportedMessageEnvelope(payload) {
+  const event = payload?.event;
+  const message = event?.message;
+  const messageType = typeof message?.message_type === "string" ? message.message_type : "unknown";
+
+  return {
+    messageId: message?.message_id ?? null,
+    openId: event?.sender?.sender_id?.open_id ?? null,
+    chatId: message?.chat_id ?? null,
+    chatType: message?.chat_type ?? null,
+    messageType,
+    attachmentKind: attachmentKindForMessageType(messageType),
+  };
+}
+
+function attachmentKindForMessageType(messageType) {
+  if (messageType === "file") {
+    return "file";
+  }
+  if (messageType === "image" || messageType === "media") {
+    return "image";
+  }
+  if (messageType === "audio") {
+    return "audio";
+  }
+  if (messageType === "post") {
+    return "document";
+  }
+  return "unsupported";
+}
+
 function groupMentionText(content, botOpenId) {
   if (!botOpenId) {
     throw new UnsupportedFeishuEventError("Group messages require bot open_id for mention filtering");

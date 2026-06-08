@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   parseMessageReceiveEvent,
+  parseUnsupportedMessageEnvelope,
   UnsupportedFeishuEventError,
 } from "../../src/feishu/message-event-parser.js";
 
@@ -137,4 +138,57 @@ test("parseMessageReceiveEvent rejects invalid content JSON", () => {
       }),
     /Invalid Feishu message content JSON/,
   );
+});
+
+test("parseUnsupportedMessageEnvelope extracts only safe non-text metadata", () => {
+  const envelope = parseUnsupportedMessageEnvelope({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_file",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "file",
+        content: JSON.stringify({
+          file_key: "file_secret",
+          file_name: "secret.txt",
+        }),
+      },
+    },
+  });
+
+  assert.deepEqual(envelope, {
+    messageId: "om_file",
+    openId: "ou_123",
+    chatId: "oc_123",
+    chatType: "p2p",
+    messageType: "file",
+    attachmentKind: "file",
+  });
+  assert.equal(JSON.stringify(envelope).includes("file_secret"), false);
+  assert.equal(JSON.stringify(envelope).includes("secret.txt"), false);
+});
+
+test("parseUnsupportedMessageEnvelope does not parse attachment content", () => {
+  const envelope = parseUnsupportedMessageEnvelope({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_image",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "image",
+        content: "not-json-with-file_key-secret",
+      },
+    },
+  });
+
+  assert.deepEqual(envelope, {
+    messageId: "om_image",
+    openId: "ou_123",
+    chatId: "oc_123",
+    chatType: "p2p",
+    messageType: "image",
+    attachmentKind: "image",
+  });
 });

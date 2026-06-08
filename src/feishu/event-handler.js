@@ -1,5 +1,6 @@
 import {
   parseMessageReceiveEvent,
+  parseUnsupportedMessageEnvelope,
   UnsupportedFeishuEventError,
 } from "./message-event-parser.js";
 import {
@@ -171,9 +172,9 @@ export class FeishuEventHandler {
   }
 
   async #handleUnsupportedMessageType(payload) {
-    const message = payload?.event?.message;
-    const messageId = message?.message_id;
-    if (!messageId || !message?.chat_id || message?.chat_type !== "p2p") {
+    const envelope = parseUnsupportedMessageEnvelope(payload);
+    const messageId = envelope.messageId;
+    if (!messageId || !envelope.chatId || envelope.chatType !== "p2p") {
       return { status: "skipped", reason: "Only text messages are supported" };
     }
     if (this.#seenMessageIds.has(messageId) || (await this.#hasSeenMessage(messageId))) {
@@ -188,11 +189,15 @@ export class FeishuEventHandler {
     }
 
     await this.#unsupportedMessageClient.sendTextMessage({
-      chatId: message.chat_id,
+      chatId: envelope.chatId,
       text: "暂不支持文件、图片、文档或语音消息。请先发送文本任务；文件下载与回传能力将在后续版本开放。",
     });
 
-    return { status: "handled", reason: "Unsupported Feishu message type notified" };
+    return {
+      status: "handled",
+      reason: "Unsupported Feishu message type notified",
+      attachmentKind: envelope.attachmentKind,
+    };
   }
 
   async #handleUnsupportedTextCommand(chatId, command) {
@@ -306,6 +311,9 @@ export class FeishuEventHandler {
     }
     if (result?.reason) {
       fields.reason = result.reason;
+    }
+    if (result?.attachmentKind) {
+      fields.attachmentKind = result.attachmentKind;
     }
     write(event, fields);
   }

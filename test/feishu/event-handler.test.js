@@ -174,7 +174,11 @@ test("handleMessageReceive replies unsupported notice for private non-text messa
     },
   });
 
-  assert.deepEqual(result, { status: "handled", reason: "Unsupported Feishu message type notified" });
+  assert.deepEqual(result, {
+    status: "handled",
+    reason: "Unsupported Feishu message type notified",
+    attachmentKind: "file",
+  });
   assert.deepEqual(notices, [
     {
       chatId: "oc_123",
@@ -184,6 +188,49 @@ test("handleMessageReceive replies unsupported notice for private non-text messa
   assert.deepEqual(marked, ["om_file"]);
   assert.equal(JSON.stringify(notices).includes("secret.txt"), false);
   assert.equal(JSON.stringify(notices).includes("file_secret"), false);
+});
+
+test("handleMessageReceive logs unsupported private attachment kind without raw metadata", async () => {
+  const logEntries = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for image message");
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async () => ({ messageId: "om_notice" }),
+    },
+    logger: fakeLogger(logEntries),
+    now: steppingClock(3000, 25),
+  });
+
+  await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_image",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "image",
+        content: JSON.stringify({ image_key: "image_secret", file_name: "secret.png" }),
+      },
+    },
+  });
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "info",
+    event: "feishu.message_handled",
+    messageId: "om_image",
+    chatId: "oc_123",
+    chatType: "p2p",
+    resultStatus: "handled",
+    durationMs: 25,
+    reason: "Unsupported Feishu message type notified",
+    attachmentKind: "image",
+  });
+  assert.equal(JSON.stringify(logEntries).includes("image_secret"), false);
+  assert.equal(JSON.stringify(logEntries).includes("secret.png"), false);
 });
 
 test("handleMessageReceive deduplicates unsupported non-text notices", async () => {
