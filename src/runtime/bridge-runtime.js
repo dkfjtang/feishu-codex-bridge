@@ -9,6 +9,7 @@ export class BridgeRuntime {
   #setTimeout;
   #clearTimeout;
   #runningUpdateThrottleMs;
+  #activeTasks = new Map();
 
   constructor({
     policy,
@@ -49,48 +50,98 @@ export class BridgeRuntime {
       feishuChatId: chatId,
       cwd,
     });
-
-    await this.#cardController.sync(task);
-
-    const mapping = await this.#threadStore.getThread({ openId, cwd });
-    let threadId = mapping?.threadId;
-
-    if (!threadId) {
-      const threadResult = await this.#session.startThread({});
-      threadId = threadResult.thread.id;
-      task.attachThread(threadId);
-    } else {
-      task.attachThread(threadId);
-    }
-
-    const runningUpdates = this.#createRunningUpdateScheduler(task);
-    const turnCompleted = this.#waitForTurnCompletion(task, runningUpdates);
-    const turnResult = await this.#session.startTurn({ threadId, text, cwd });
-    if (turnResult.turn?.id) {
-      task.handleCodexEvent({
-        method: "turn/started",
-        params: { turn: { id: turnResult.turn.id } },
-      });
-    }
+    const activeKey = chatId || "unknown";
+    const activeTask = {
+      task,
+      runningUpdates: null,
+      resolveCancellation: null,
+      cancelled: false,
+    };
+    this.#activeTasks.set(activeKey, activeTask);
 
     try {
-      await turnCompleted;
+      await this.#cardController.sync(task);
+
+      const mapping = await this.#threadStore.getThread({ openId, cwd });
+      let threadId = mapping?.threadId;
+
+      if (!threadId) {
+        const threadResult = await this.#session.startThread({});
+        threadId = threadResult.thread.id;
+        task.attachThread(threadId);
+      } else {
+        task.attachThread(threadId);
+      }
+
+      const runningUpdates = this.#createRunningUpdateScheduler(task);
+      activeTask.runningUpdates = runningUpdates;
+      const cancellation = new Promise((resolve) => {
+        activeTask.resolveCancellation = resolve;
+      });
+      const turnCompleted = this.#waitForTurnCompletion(task, runningUpdates, cancellation);
+      if (activeTask.cancelled) {
+        activeTask.resolveCancellation();
+      } else {
+        const turnResult = await this.#session.startTurn({ threadId, text, cwd });
+        if (turnResult.turn?.id) {
+          task.handleCodexEvent({
+            method: "turn/started",
+            params: { turn: { id: turnResult.turn.id } },
+          });
+        }
+      }
+
+      try {
+        await turnCompleted;
+      } finally {
+        runningUpdates.cancel();
+      }
+
+      await this.#threadStore.saveThread({
+        openId,
+        cwd,
+        threadId,
+        lastTurnId: task.snapshot().turnId,
+      });
+      await this.#cardController.sync(task);
+
+      return task;
     } finally {
-      runningUpdates.cancel();
+      if (this.#activeTasks.get(activeKey) === activeTask) {
+        this.#activeTasks.delete(activeKey);
+      }
     }
-
-    await this.#threadStore.saveThread({
-      openId,
-      cwd,
-      threadId,
-      lastTurnId: task.snapshot().turnId,
-    });
-    await this.#cardController.sync(task);
-
-    return task;
   }
 
-  #waitForTurnCompletion(task, runningUpdates) {
+  async cancelActiveTask({ chatId, reason = "任务已取消" }) {
+    const activeTask = this.#activeTasks.get(chatId || "unknown");
+    if (!activeTask) {
+      return { status: "skipped", reason: "No active task for chat" };
+    }
+
+    const snapshot = activeTask.task.snapshot();
+    activeTask.cancelled = true;
+    activeTask.task.cancel(reason);
+    activeTask.runningUpdates?.cancel();
+
+    if (snapshot.threadId && snapshot.turnId && typeof this.#session.interruptTurn === "function") {
+      try {
+        await this.#session.interruptTurn({
+          threadId: snapshot.threadId,
+          turnId: snapshot.turnId,
+        });
+      } catch {
+        // The Feishu-side cancellation state is still useful if app-server interrupt fails.
+      }
+    }
+
+    await this.#cardController.sync(activeTask.task);
+    activeTask.resolveCancellation?.();
+
+    return { status: "cancelled", taskStatus: "cancelled" };
+  }
+
+  #waitForTurnCompletion(task, runningUpdates, cancellation) {
     let unsubscribe = () => {};
     let timeoutId;
 
@@ -108,6 +159,8 @@ export class BridgeRuntime {
       timeoutId = setTimeout(() => {
         reject(new Error("Timed out waiting for Codex turn completion"));
       }, this.turnTimeoutMs);
+
+      cancellation.then(resolve);
     });
 
     return completed.finally(() => {

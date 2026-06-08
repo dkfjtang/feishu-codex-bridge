@@ -132,6 +132,44 @@ test("handleMessageReceive allows different chats to run concurrently", async ()
   assert.deepEqual(calls, ["start:om_1", "start:om_2", "finish:om_2", "finish:om_1"]);
 });
 
+test("handleMessageReceive uses cancel fast path without waiting for queued chat work", async () => {
+  const calls = [];
+  let markFirstStarted;
+  const firstStarted = new Promise((resolve) => {
+    markFirstStarted = resolve;
+  });
+  let firstCanFinish;
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(`start:${message.messageId}`);
+        await new Promise((resolve) => {
+          firstCanFinish = resolve;
+          markFirstStarted();
+        });
+        calls.push(`finish:${message.messageId}`);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+      cancelActiveTask: async ({ chatId, reason }) => {
+        calls.push(`cancel:${chatId}:${reason}`);
+        return { status: "cancelled", taskStatus: "cancelled" };
+      },
+    },
+  });
+
+  const first = handler.handleMessageReceive(textPayload({ messageId: "om_1", chatId: "oc_123" }));
+  await firstStarted;
+  const cancel = await handler.handleMessageReceive(
+    textPayload({ messageId: "om_2", chatId: "oc_123", text: "停止" }),
+  );
+
+  assert.deepEqual(calls, ["start:om_1", "cancel:oc_123:用户已停止任务"]);
+  assert.deepEqual(cancel, { status: "cancelled", taskStatus: "cancelled" });
+
+  firstCanFinish();
+  await first;
+});
+
 test("handleMessageReceive skips duplicate message ids", async () => {
   let calls = 0;
   const handler = new FeishuEventHandler({
@@ -163,7 +201,7 @@ test("handleMessageReceive skips duplicate message ids", async () => {
   assert.deepEqual(second, { status: "skipped", reason: "Duplicate Feishu message" });
 });
 
-function textPayload({ messageId, chatId }) {
+function textPayload({ messageId, chatId, text = "hello" }) {
   return {
     event: {
       sender: { sender_id: { open_id: "ou_123" } },
@@ -172,7 +210,7 @@ function textPayload({ messageId, chatId }) {
         chat_id: chatId,
         chat_type: "p2p",
         message_type: "text",
-        content: JSON.stringify({ text: "hello" }),
+        content: JSON.stringify({ text }),
       },
     },
   };

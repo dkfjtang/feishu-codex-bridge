@@ -213,12 +213,21 @@ failed
 - 当前任务失败。
 - 飞书卡片展示 turn 启动失败。
 
+### turn/interrupt
+
+当飞书用户在同一私聊发送 `取消`、`停止`、`stop`、`abort` 或 `cancel` 时，Bridge 会：
+
+1. 查找当前 `chat_id` 的 active task。
+2. 将 task 标记为 `cancelled` 并更新飞书卡片。
+3. 如果已取得 `thread_id` 和 `turn_id`，调用 app-server `turn/interrupt`。
+4. 让原 turn 流程收尾，并再次同步最终 cancelled 卡片。
+
 ### turn 超时
 
 处理：
 
 - 标记任务 failed 或 cancelled。
-- 后续实现 `turn/interrupt` 后可主动中断。
+- 对用户主动取消的任务，优先调用 `turn/interrupt` 主动中断。
 - 飞书卡片展示超时。
 
 ### app-server 运行中断开

@@ -50,6 +50,10 @@ export class AppServerSession {
     return this.#client.request("turn/start", params);
   }
 
+  interruptTurn({ threadId, turnId }) {
+    return this.#client.request("turn/interrupt", { threadId, turnId });
+  }
+
   handleMessage(message) {
     this.#client.handleMessage(message);
   }

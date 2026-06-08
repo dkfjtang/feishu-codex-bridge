@@ -80,3 +80,13 @@ test("turn failure records a readable error summary", () => {
   assert.equal(snapshot.status, "failed");
   assert.equal(snapshot.errorSummary, "Tool approval denied");
 });
+
+test("cancel marks task cancelled with readable reason", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.cancel("用户已停止任务");
+
+  const snapshot = task.snapshot();
+  assert.equal(snapshot.status, "cancelled");
+  assert.equal(snapshot.errorSummary, "用户已停止任务");
+});

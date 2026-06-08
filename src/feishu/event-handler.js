@@ -47,6 +47,17 @@ export class FeishuEventHandler {
     }
     this.#seenMessageIds.add(message.messageId);
 
+    if (isCancelText(message.text)) {
+      if (typeof this.#runtime.cancelActiveTask !== "function") {
+        return { status: "skipped", reason: "Cancel is not supported" };
+      }
+
+      return this.#runtime.cancelActiveTask({
+        chatId: message.chatId,
+        reason: "用户已停止任务",
+      });
+    }
+
     return this.#enqueue(message.chatId, async () => {
       const task = await this.#runtime.handleTextMessage(message);
       return {
@@ -90,4 +101,8 @@ export class FeishuEventHandler {
 
     return current;
   }
+}
+
+function isCancelText(text) {
+  return /^(取消|停止|终止|中止|stop|abort|cancel|cancel task|stop task)$/i.test(text.trim());
 }

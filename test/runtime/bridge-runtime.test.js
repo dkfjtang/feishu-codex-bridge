@@ -260,6 +260,105 @@ test("handleTextMessage keeps turn alive when a running card update fails", asyn
   assert.equal(syncCount, 3);
 });
 
+test("cancelActiveTask interrupts active turn and resolves it as cancelled", async () => {
+  let emitEvent;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  const syncStatuses = [];
+  const sessionCalls = [];
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      calls: sessionCalls,
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+      interruptTurn: async ({ threadId, turnId }) => {
+        sessionCalls.push({ method: "interruptTurn", threadId, turnId });
+        queueMicrotask(() => {
+          emitEvent({ method: "turn/completed", params: { status: "cancelled" } });
+        });
+        return { ok: true };
+      },
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncStatuses.push(task.snapshot().status);
+        task.attachCard("om_123");
+      },
+    },
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  const cancelResult = await runtime.cancelActiveTask({
+    chatId: "oc_123",
+    reason: "用户已停止任务",
+  });
+  const task = await pending;
+
+  assert.deepEqual(cancelResult, { status: "cancelled", taskStatus: "cancelled" });
+  assert.equal(task.snapshot().status, "cancelled");
+  assert.deepEqual(
+    sessionCalls.map((call) => call.method),
+    ["startThread", "startTurn", "interruptTurn"],
+  );
+  assert.deepEqual(syncStatuses, ["queued", "cancelled", "cancelled"]);
+});
+
+test("cancelActiveTask keeps Feishu cancellation when app-server interrupt fails", async () => {
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+      interruptTurn: async () => {
+        throw new Error("interrupt unavailable");
+      },
+    }),
+    cardController: fakeCardController(),
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  const cancelResult = await runtime.cancelActiveTask({
+    chatId: "oc_123",
+    reason: "用户已停止任务",
+  });
+  const task = await pending;
+
+  assert.deepEqual(cancelResult, { status: "cancelled", taskStatus: "cancelled" });
+  assert.equal(task.snapshot().status, "cancelled");
+});
+
 test("handleTextMessage returns failed task when streamed turn fails", async () => {
   let emitEvent;
   const runtime = new BridgeRuntime({
@@ -301,7 +400,7 @@ function allowDefaultPolicy() {
   });
 }
 
-function fakeSession({ calls = [], onEvent, startTurnHook } = {}) {
+function fakeSession({ calls = [], onEvent, startTurnHook, interruptTurn } = {}) {
   let eventHandler = () => {};
   return {
     onEvent: (handler) => {
@@ -326,6 +425,7 @@ function fakeSession({ calls = [], onEvent, startTurnHook } = {}) {
       }
       return { turn: { id: "turn_new" } };
     },
+    interruptTurn,
   };
 }
 

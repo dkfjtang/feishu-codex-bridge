@@ -83,6 +83,31 @@ test("startTurn converts Feishu text into Codex turn input", async () => {
   await assert.deepEqual(await turnPromise, { turn: { id: "turn_123" } });
 });
 
+test("interruptTurn requests Codex turn interruption", async () => {
+  const written = [];
+  const session = new AppServerSession({
+    write: (message) => written.push(message),
+  });
+
+  const interruptPromise = session.interruptTurn({
+    threadId: "thr_123",
+    turnId: "turn_123",
+  });
+
+  assert.deepEqual(written[0], {
+    id: 1,
+    method: "turn/interrupt",
+    params: {
+      threadId: "thr_123",
+      turnId: "turn_123",
+    },
+  });
+
+  session.handleMessage({ id: 1, result: { ok: true } });
+
+  await assert.deepEqual(await interruptPromise, { ok: true });
+});
+
 test("notifications are forwarded to the session event handler", () => {
   const events = [];
   const session = new AppServerSession({

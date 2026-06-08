@@ -37,7 +37,16 @@ export class RuntimeTask {
     this.#cardMessageId = cardMessageId;
   }
 
+  cancel(reason = "任务已取消") {
+    this.#status = "cancelled";
+    this.#errorSummary = reason;
+  }
+
   handleCodexEvent(event) {
+    if (this.#status === "cancelled") {
+      return;
+    }
+
     switch (event.method) {
       case "turn/started":
         this.#turnId = event.params?.turn?.id ?? this.#turnId;

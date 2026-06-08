@@ -109,6 +109,12 @@ fca 可以高度复用 OpenClaw 类飞书插件的交互体验，但不应完全
 - 正文：取消原因
 - footer：`thread_id`、`turn_id`、取消时间
 
+触发：
+
+- 私聊内发送 `取消`、`停止`、`stop`、`abort` 或 `cancel`。
+- fca 会绕过同 chat 队列，优先将当前 active task 标记为 cancelled。
+- 如当前 task 已有 `thread_id` 和 `turn_id`，fca 会调用 Codex app-server `turn/interrupt`。
+
 ## footer 信息规范
 
 footer 只展示排障有用、但不泄露敏感信息的字段。
