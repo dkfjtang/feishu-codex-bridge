@@ -886,6 +886,57 @@ test("handleTextMessage returns failed task when streamed turn fails", async () 
   assert.equal(task.snapshot().errorSummary, "denied");
 });
 
+test("handleTextMessage marks active task failed when app-server disconnects", async () => {
+  let emitEvent;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  const syncStatuses = [];
+  const logEntries = [];
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncStatuses.push(task.snapshot().status);
+        task.attachCard("om_123");
+      },
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  emitEvent({
+    method: "appServer/disconnected",
+    params: { code: 1, signal: null },
+  });
+
+  const task = await pending;
+
+  assert.equal(task.snapshot().status, "failed");
+  assert.equal(task.snapshot().errorSummary, "本地 Codex app-server 已断开");
+  assert.deepEqual(syncStatuses, ["queued", "failed", "failed"]);
+  assert.equal(logEntries.at(-1).event, "task.failed");
+  assert.equal(logEntries.at(-1).errorType, "app_server_disconnected");
+});
+
 test("handleTextMessage writes traceable structured task logs", async () => {
   const logEntries = [];
   const threadStore = new MemoryThreadStore({ now: () => "test-now" });

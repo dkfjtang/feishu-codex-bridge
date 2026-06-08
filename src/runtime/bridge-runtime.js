@@ -350,6 +350,25 @@ export class BridgeRuntime {
 
     const completed = new Promise((resolve, reject) => {
       unsubscribe = this.#session.onEvent((event) => {
+        if (event.method === "appServer/disconnected") {
+          runningUpdates.cancel();
+          task.fail("本地 Codex app-server 已断开", "app_server_disconnected");
+          void (async () => {
+            try {
+              await this.#cardController.sync(task);
+            } catch (error) {
+              this.#logTask(
+                "error",
+                "task.disconnect_sync_failed",
+                task,
+                errorLogFields(error),
+              );
+            }
+            resolve();
+          })();
+          return;
+        }
+
         task.handleCodexEvent(event);
         if (shouldScheduleRunningUpdate(event.method)) {
           runningUpdates.schedule();

@@ -64,6 +64,17 @@ export class RuntimeTask {
     this.#completedAt = this.#now();
   }
 
+  fail(reason = "任务失败", type = "failed") {
+    if (this.#status === "completed" || this.#status === "cancelled") {
+      return;
+    }
+
+    this.#status = "failed";
+    this.#errorSummary = reason;
+    this.#errorType = type;
+    this.#completedAt = this.#now();
+  }
+
   resolveApproval(decision) {
     if (!this.#approval || this.#approval.status !== "pending") {
       return;

@@ -36,7 +36,7 @@ fca Bridge
 2. Bridge 拉起 `codex app-server` 子进程。
 3. stdout 按行读取 JSON。
 4. stderr 进入 Bridge 日志。
-5. 进程退出时标记 app-server unavailable。
+5. 进程退出时标记 app-server unavailable，并向 runtime 分发 `appServer/disconnected` 本地事件。
 
 ### 初始化
 
@@ -163,6 +163,7 @@ request_id -> resolver
 | approval server request | status = waiting_approval | 更新等待审批卡片；按钮回调后回写 decision，超时默认 decline |
 | `turn/completed` success | status = completed | 更新最终卡片 |
 | `turn/completed` failure | status = failed | 更新失败卡片 |
+| `appServer/disconnected` | status = failed，errorType = app_server_disconnected | 立即更新失败卡片，再走最终同步和 `task.failed` 日志 |
 
 事件翻译必须是幂等的。重复事件不能导致重复发送大量飞书消息。
 
@@ -249,8 +250,9 @@ failed
 
 处理：
 
-- 所有 running task 标记 failed。
-- 飞书卡片更新为本地 Codex 连接中断。
+- 当前 active task 标记 failed，错误摘要为“本地 Codex app-server 已断开”。
+- 飞书任务卡片先做一次断连失败同步，再由任务收尾流程做最终同步。
+- 结构化日志记录 `task.failed`，`errorType=app_server_disconnected`，不写入命令、参数、完整路径或原始 payload。
 - Bridge 可按策略重启 app-server。
 
 ## 权限和审批

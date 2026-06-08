@@ -74,6 +74,7 @@ fca 是飞书到本地 Codex 的桥接服务。它不替代 Codex，也不把本
 - 飞书事件解析失败：记录日志，不回显内部错误。
 - 非白名单用户：返回无权限提示。
 - app-server 启动失败：返回本地 Codex 不可用提示。
+- app-server 运行中断开：当前 active task 标记为 failed，任务卡片更新为本地 Codex 连接中断，并记录 `errorType=app_server_disconnected`。
 - turn 执行失败：返回可读错误摘要。
 - 输出过长：按飞书限制分段或提示查看本地产物。
 

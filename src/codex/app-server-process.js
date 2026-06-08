@@ -51,8 +51,12 @@ export class CodexAppServerProcess {
 
     forwardLines(child.stderr, this.#onStderr);
 
-    child.on("exit", () => {
+    child.on("exit", (code, signal) => {
       this.#available = false;
+      this.#onEvent({
+        method: "appServer/disconnected",
+        params: { code, signal },
+      });
     });
 
     await this.#session.initialize();

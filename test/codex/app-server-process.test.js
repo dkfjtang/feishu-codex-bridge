@@ -98,8 +98,10 @@ test("stderr lines are forwarded to the log handler", () => {
 
 test("exit event marks process unavailable", async () => {
   const child = createFakeChildProcess();
+  const events = [];
   const process = new CodexAppServerProcess({
     spawnFn: () => child,
+    onEvent: (event) => events.push(event),
   });
 
   const startPromise = process.start();
@@ -111,6 +113,15 @@ test("exit event marks process unavailable", async () => {
   child.emit("exit", 1, null);
 
   assert.equal(process.isAvailable(), false);
+  assert.deepEqual(events, [
+    {
+      method: "appServer/disconnected",
+      params: {
+        code: 1,
+        signal: null,
+      },
+    },
+  ]);
 });
 
 test("stop terminates the child process and marks it unavailable", async () => {
