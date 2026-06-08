@@ -9,6 +9,7 @@
 - 首批权限模型：白名单用户 + 白名单工作目录。
 - 飞书侧体验基线：对齐 OpenClaw 官方飞书插件源码和功能，但不 fork、不引入其运行时。
 - 飞书侧新增能力规则：先补 OpenClaw 源码行为对齐记录，再实现 fca 的 Codex app-server 映射和测试。
+- OpenClaw/文章已覆盖的飞书通道能力不再作为空白自研；fca 后续只在 Codex app-server 差异层做实现，飞书体验默认按 OpenClaw 行为对齐。
 
 ## M0 文档和配置骨架
 
@@ -173,6 +174,11 @@ Done 标准：
 - CardKit 2.0 流式卡片，失败后回退 IM patch。
 - 文件下载和回传。
 - WebSocket 长驻部署模式。
+
+路线收敛：
+
+- 以上候选能力如果属于飞书通道通用能力，必须先按 `docs/openclaw-feishu-alignment.md` 更新 OpenClaw 行为基线，再实现 fca 的 Codex 映射。
+- 不再重复设计 OpenClaw 已有的 WebSocket、streaming card、footer、文件通道和审批交互范式；实现重点放在 Codex app-server thread / turn / approval / event 映射。
 
 进入条件：
 

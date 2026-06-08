@@ -16,6 +16,8 @@ OpenClaw / ClawBot 案例证明了“聊天入口 + 本地 Agent 执行端”的
 
 本项目希望用本地 Codex 替代 OpenClaw 执行端，让飞书成为 Codex 的远程任务入口和审批入口。
 
+2026-06-09 裁决：OpenClaw 飞书插件和相关文章已经覆盖大量飞书通道能力，fca 不应发展成另一个通用 OpenClaw 飞书插件。项目保留的必要性在于 Codex app-server 专用桥接：把 Codex thread / turn / streamed events / approval server request 映射到飞书，而飞书侧通道体验默认按 OpenClaw 行为对齐。
+
 ## 项目目标
 
 构建一个飞书到本地 Codex 的桥接服务，支持用户通过飞书向本地 Codex 派发任务，并通过飞书接收执行结果、审批请求和交付文件。
@@ -23,6 +25,7 @@ OpenClaw / ClawBot 案例证明了“聊天入口 + 本地 Agent 执行端”的
 ## 非目标
 
 - 不复制 OpenClaw 的完整平台能力。
+- 不重复设计 OpenClaw 已覆盖的飞书通道范式；只保留 Codex app-server 差异层实现。
 - 不做个人微信 Hook、网页版微信协议或非官方微信协议接入。
 - 不在第一阶段实现多租户商业化能力。
 - 不默认开放 `danger-full-access` 类型的无边界本地执行。
