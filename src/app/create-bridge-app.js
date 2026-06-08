@@ -60,6 +60,7 @@ export function createBridgeApp({
         appVersion: config.appVersion,
         groupDeveloperInstructions: config.groupDeveloperInstructions,
         turnTimeoutMs: config.turnTimeoutSeconds * 1000,
+        approvalTimeoutMs: config.approvalTimeoutSeconds * 1000,
       });
       eventHandler = new FeishuEventHandler({
         runtime,

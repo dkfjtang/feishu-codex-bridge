@@ -210,7 +210,13 @@ export class BridgeRuntime {
       return { status: "skipped", reason: "No pending approval" };
     }
 
-    this.#finishApproval(pending, decision);
+    if (!this.#finishApproval(pending, decision)) {
+      return { status: "skipped", reason: "Approval is already resolved" };
+    }
+    this.#logTask("info", "task.approval_resolved", pending.task, {
+      ...approvalDecisionLogFields(decision),
+      approvalOperatorOpenId: openId,
+    });
     await this.#cardController.sync(pending.task);
 
     return {
@@ -244,12 +250,13 @@ export class BridgeRuntime {
         timer: null,
       };
       pending.timer = this.#setTimeout(() => {
-        this.#finishApproval(pending, "decline");
+        void this.#resolveApprovalTimeout(pending);
       }, this.#approvalTimeoutMs);
 
       for (const key of pending.keys) {
         this.#pendingApprovals.set(key, pending);
       }
+      this.#logTask("info", "task.approval_requested", task, approvalRequestLogFields(request));
     });
 
     return result;
@@ -257,7 +264,7 @@ export class BridgeRuntime {
 
   #finishApproval(pending, decision) {
     if (!pending || pending.resolved) {
-      return;
+      return false;
     }
 
     pending.resolved = true;
@@ -272,6 +279,20 @@ export class BridgeRuntime {
 
     pending.task.resolveApproval(decision);
     pending.resolve({ decision });
+    return true;
+  }
+
+  async #resolveApprovalTimeout(pending) {
+    if (!this.#finishApproval(pending, "decline")) {
+      return;
+    }
+
+    this.#logTask("info", "task.approval_timeout", pending.task, approvalDecisionLogFields("decline"));
+    try {
+      await this.#cardController.sync(pending.task);
+    } catch (error) {
+      this.#logTask("error", "task.approval_timeout_sync_failed", pending.task, errorLogFields(error));
+    }
   }
 
   #findPendingApproval({ taskId = null, requestId = null, approvalId = null, itemId = null }) {
@@ -385,6 +406,7 @@ export class BridgeRuntime {
       errorSummary: snapshot.errorSummary,
       errorType: snapshot.errorType,
       ...stageLogFields(snapshot),
+      ...approvalLogFields(snapshot.approval),
       ...tokenUsageLogFields(snapshot.tokenUsage),
       ...extraFields,
     };
@@ -417,6 +439,34 @@ function stageLogFields(snapshot) {
   }
 
   return fields;
+}
+
+function approvalLogFields(approval) {
+  if (!approval) {
+    return {};
+  }
+
+  return {
+    approvalMethod: approval.method,
+    approvalType: approval.type,
+    approvalStatus: approval.status,
+    approvalId: approval.approvalId,
+    approvalItemId: approval.itemId,
+  };
+}
+
+function approvalRequestLogFields(request) {
+  const params = request.params ?? {};
+  return {
+    approvalRequestId: request.id ?? null,
+    approvalMethod: request.method,
+    approvalId: params.approvalId ?? params.callId ?? params.itemId ?? null,
+    approvalItemId: params.itemId ?? params.callId ?? null,
+  };
+}
+
+function approvalDecisionLogFields(decision) {
+  return { approvalDecision: decision };
 }
 
 function shouldScheduleRunningUpdate(method) {

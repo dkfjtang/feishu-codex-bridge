@@ -2,6 +2,7 @@ const DEFAULT_CODEX_BIN = "codex";
 const DEFAULT_CODEX_LISTEN = "stdio://";
 const DEFAULT_LOG_LEVEL = "info";
 const DEFAULT_TURN_TIMEOUT_SECONDS = 900;
+const DEFAULT_APPROVAL_TIMEOUT_SECONDS = 300;
 const DEFAULT_MESSAGE_DEDUP_TTL_SECONDS = 86400;
 const DEFAULT_THREAD_STORE_PATH = "data/threads.json";
 const DEFAULT_SQLITE_THREAD_STORE_PATH = "data/threads.sqlite";
@@ -15,6 +16,11 @@ export function loadConfig(env = process.env) {
     env.FCA_TURN_TIMEOUT_SECONDS,
     DEFAULT_TURN_TIMEOUT_SECONDS,
     "FCA_TURN_TIMEOUT_SECONDS",
+  );
+  const approvalTimeoutSeconds = parsePositiveInteger(
+    env.FCA_APPROVAL_TIMEOUT_SECONDS,
+    DEFAULT_APPROVAL_TIMEOUT_SECONDS,
+    "FCA_APPROVAL_TIMEOUT_SECONDS",
   );
   const messageDedupTtlSeconds = parsePositiveInteger(
     env.FCA_MESSAGE_DEDUP_TTL_SECONDS,
@@ -45,6 +51,7 @@ export function loadConfig(env = process.env) {
       env.FCA_MESSAGE_DEDUP_STORE_PATH?.trim() || DEFAULT_MESSAGE_DEDUP_STORE_PATH,
     messageDedupTtlSeconds,
     turnTimeoutSeconds,
+    approvalTimeoutSeconds,
   };
 }
 

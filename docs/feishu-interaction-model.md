@@ -77,7 +77,7 @@ fca 可以高度复用 OpenClaw 类飞书插件的交互体验，但不应完全
 - 操作：允许一次、本会话允许、拒绝、停止
 - footer：`thread_id`、`turn_id`、approval id
 
-当前阶段已经能把 approval server request 显示为等待审批卡片，并通过 `card.action.trigger` 将按钮选择回写 app-server；无人交互超时后 app-server 默认收到 `decline`。
+当前阶段已经能把 approval server request 显示为等待审批卡片，并通过 `card.action.trigger` 将按钮选择回写 app-server；无人交互超过 `FCA_APPROVAL_TIMEOUT_SECONDS` 后 app-server 默认收到 `decline`，卡片会 best-effort 更新为已拒绝摘要。
 
 ### completed
 
@@ -186,6 +186,7 @@ MVP 策略：
 当前已完成最小闭环：Bridge 可识别 `item/commandExecution/requestApproval`、`item/fileChange/requestApproval`、`item/permissions/requestApproval`、`applyPatchApproval` 和 `execCommandApproval`，并把飞书按钮选择回写为 app-server approval response。超时或无人处理时仍默认安全拒绝。
 
 审批结果必须回写 Codex app-server，而不是只更新飞书卡片。
+审批处理会写结构化日志，包括 requested、resolved 和 timeout 事件，日志只包含脱敏 approval id / item id / decision。
 
 ## 与 OpenClaw 能力的复用边界
 

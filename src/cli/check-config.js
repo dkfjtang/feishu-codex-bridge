@@ -46,6 +46,7 @@ export function checkConfig(env = process.env) {
       threadStoreDriver: config.threadStoreDriver,
       threadStorePath: config.threadStorePath,
       turnTimeoutSeconds: config.turnTimeoutSeconds,
+      approvalTimeoutSeconds: config.approvalTimeoutSeconds,
     },
   };
 }
@@ -86,6 +87,7 @@ export async function runCheckConfig({
   output.write(`messageDedupStorePath: ${result.summary.messageDedupStorePath}\n`);
   output.write(`messageDedupTtlSeconds: ${result.summary.messageDedupTtlSeconds}\n`);
   output.write(`turnTimeoutSeconds: ${result.summary.turnTimeoutSeconds}\n`);
+  output.write(`approvalTimeoutSeconds: ${result.summary.approvalTimeoutSeconds}\n`);
   if (result.warnings.length > 0) {
     output.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);
   }

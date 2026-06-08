@@ -251,7 +251,7 @@ failed
 - 只记录脱敏后的 `requestId`、`method`、`approvalId`、`itemId`、审批类型和安全摘要。
 - 更新同一张飞书任务卡片为“需要确认”，并展示“允许一次 / 本会话允许 / 拒绝 / 停止”按钮。
 - `card.action.trigger` 回调会通过 pending approval 映射回写 app-server `{ "decision": "accept" | "acceptForSession" | "decline" | "cancel" }`。
-- 如果用户没有在超时时间内点击按钮，默认向 app-server 回写 `{ "decision": "decline" }`，避免无人值守时放行敏感动作。
+- 如果用户没有在 `FCA_APPROVAL_TIMEOUT_SECONDS` 内点击按钮，默认向 app-server 回写 `{ "decision": "decline" }`，并 best-effort 更新卡片为已拒绝状态，避免无人值守时放行敏感动作。
 
 已确认的 approval server request 方法：
 
@@ -275,6 +275,8 @@ Codex approval server request
 ```
 
 审批卡片必须携带足够上下文，但不能暴露完整环境变量、令牌或敏感路径。
+
+审批超时默认 300 秒，可通过 `FCA_APPROVAL_TIMEOUT_SECONDS` 调整。该超时只控制单个 app-server approval request 的等待时间，不替代整个 turn 的 `FCA_TURN_TIMEOUT_SECONDS`。
 
 ## 可测试边界
 

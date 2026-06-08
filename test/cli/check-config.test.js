@@ -62,6 +62,7 @@ test("checkConfig accepts a complete MVP configuration", () => {
       threadStoreDriver: "json",
       threadStorePath: "data/threads.json",
       turnTimeoutSeconds: 900,
+      approvalTimeoutSeconds: 300,
     },
   });
 });
@@ -107,4 +108,5 @@ test("runCheckConfig prints summary and returns zero on valid config", async () 
   assert.match(stdout, /appVersion: 0.1.0/);
   assert.match(stdout, /threadStoreDriver: json/);
   assert.match(stdout, /messageDedupStorePath: data\/message-dedup.json/);
+  assert.match(stdout, /approvalTimeoutSeconds: 300/);
 });

@@ -523,6 +523,8 @@ test("approval request safely declines when it times out", async () => {
     markEventReady = resolve;
   });
   let approvalTimer;
+  const syncSnapshots = [];
+  const logEntries = [];
   const runtime = new BridgeRuntime({
     policy: allowDefaultPolicy(),
     threadStore: new MemoryThreadStore({ now: () => "test-now" }),
@@ -538,7 +540,13 @@ test("approval request safely declines when it times out", async () => {
       },
       startTurnHook: () => {},
     }),
-    cardController: fakeCardController(),
+    cardController: {
+      sync: async (task) => {
+        syncSnapshots.push(task.snapshot());
+        task.attachCard("om_123");
+      },
+    },
+    logger: fakeLogger(logEntries),
     approvalTimeoutMs: 1000,
     setTimeoutFn: (callback, delay) => {
       approvalTimer = { callback, delay };
@@ -571,8 +579,13 @@ test("approval request safely declines when it times out", async () => {
 
   assert.equal(approvalTimer.delay, 1000);
   approvalTimer.callback();
+  await Promise.resolve();
+  await Promise.resolve();
 
   assert.deepEqual(await approvalResponse, { decision: "decline" });
+  assert.equal(syncSnapshots.at(-1).approval.status, "declined");
+  assert.equal(logEntries.some((entry) => entry.event === "task.approval_timeout"), true);
+  assert.equal(logEntries.find((entry) => entry.event === "task.approval_timeout").approvalDecision, "decline");
   assert.deepEqual(
     await runtime.resolveApproval({
       openId: "ou_allowed",

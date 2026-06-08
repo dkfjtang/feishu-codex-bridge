@@ -26,6 +26,7 @@
 | `FCA_VERSION` | fca 版本标识，默认 `0.1.0`，会展示在卡片 footer 和结构化日志上下文。 |
 | `FCA_LOG_LEVEL` | JSONL 结构化日志级别，可选 `debug` / `info` / `warn` / `error`，默认 `info`。 |
 | `FCA_TURN_TIMEOUT_SECONDS` | 单个 turn 超时时间。 |
+| `FCA_APPROVAL_TIMEOUT_SECONDS` | Codex approval request 等待飞书按钮处理的超时时间，默认 `300` 秒；超时默认拒绝。 |
 | `FCA_THREAD_STORE_DRIVER` | thread 映射存储后端，可选 `json` / `sqlite`，默认 `json`。 |
 | `FCA_THREAD_STORE_PATH` | 本地 thread 映射存储路径；`json` 默认 `data/threads.json`，`sqlite` 默认 `data/threads.sqlite`。 |
 | `FCA_MESSAGE_DEDUP_STORE_PATH` | 本地消息去重 JSON 文件路径，用于 WebSocket 重连或进程重启后的回放去重。 |
@@ -52,7 +53,7 @@ npm run check-config
 - `FCA_GROUP_DEVELOPER_INSTRUCTIONS` 的配置数量会在摘要中展示；格式错误会报错。
 - `FCA_ALLOWED_WORKDIRS` 是否至少包含一个本地目录。
 - `FCA_DEFAULT_WORKDIR` 是否存在且位于工作目录白名单内。
-- turn 超时、thread store driver/path、message dedup store 路径和 Codex 命令等基础 runtime 配置。
+- turn 超时、approval 超时、thread store driver/path、message dedup store 路径和 Codex 命令等基础 runtime 配置。
 
 ## Thread Store
 

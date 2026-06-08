@@ -20,6 +20,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
     FCA_MESSAGE_DEDUP_STORE_PATH: "data\\message-dedup.json",
     FCA_MESSAGE_DEDUP_TTL_SECONDS: "3600",
     FCA_TURN_TIMEOUT_SECONDS: "120",
+    FCA_APPROVAL_TIMEOUT_SECONDS: "30",
   });
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
@@ -46,6 +47,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   assert.equal(config.messageDedupStorePath, "data\\message-dedup.json");
   assert.equal(config.messageDedupTtlSeconds, 3600);
   assert.equal(config.turnTimeoutSeconds, 120);
+  assert.equal(config.approvalTimeoutSeconds, 30);
 });
 
 test("loadConfig uses safe local defaults when optional values are missing", () => {
@@ -68,6 +70,7 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   assert.equal(config.messageDedupStorePath, "data/message-dedup.json");
   assert.equal(config.messageDedupTtlSeconds, 86400);
   assert.equal(config.turnTimeoutSeconds, 900);
+  assert.equal(config.approvalTimeoutSeconds, 300);
 });
 
 test("loadConfig uses sqlite default thread store path when sqlite driver is selected", () => {
@@ -81,6 +84,13 @@ test("loadConfig rejects non-positive turn timeout", () => {
   assert.throws(
     () => loadConfig({ FCA_TURN_TIMEOUT_SECONDS: "0" }),
     /FCA_TURN_TIMEOUT_SECONDS must be a positive integer/,
+  );
+});
+
+test("loadConfig rejects non-positive approval timeout", () => {
+  assert.throws(
+    () => loadConfig({ FCA_APPROVAL_TIMEOUT_SECONDS: "0" }),
+    /FCA_APPROVAL_TIMEOUT_SECONDS must be a positive integer/,
   );
 });
 

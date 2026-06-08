@@ -13,6 +13,7 @@ test("createBridgeApp wires config, policy, store, runtime, and handler", async 
       FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
       FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
       FCA_THREAD_STORE_PATH: "ignored.json",
+      FCA_APPROVAL_TIMEOUT_SECONDS: "42",
     },
     codexAppServerFactory: ({ onEvent }) => ({
       start: async () => ({
@@ -72,6 +73,7 @@ test("createBridgeApp wires config, policy, store, runtime, and handler", async 
     cardActions.map((action) => action.type),
     ["send", "update"],
   );
+  assert.equal(app.config.approvalTimeoutSeconds, 42);
 });
 
 test("createBridgeApp exposes config for diagnostics", () => {
