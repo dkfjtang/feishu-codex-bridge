@@ -49,6 +49,7 @@ test("checkConfig accepts a complete MVP configuration", () => {
     warnings: [],
     summary: {
       allowedOpenIdCount: 1,
+      allowedGroupChatIdCount: 0,
       allowedWorkdirCount: 1,
       appVersion: "0.1.0",
       codexBin: "codex",
@@ -96,6 +97,7 @@ test("runCheckConfig prints summary and returns zero on valid config", async () 
   assert.equal(exitCode, 0);
   assert.match(stdout, /Configuration check passed/);
   assert.match(stdout, /allowedOpenIds: 1/);
+  assert.match(stdout, /allowedGroupChatIds: 0/);
   assert.match(stdout, /codexModel: default/);
   assert.match(stdout, /appVersion: 0.1.0/);
   assert.match(stdout, /messageDedupStorePath: data\/message-dedup.json/);

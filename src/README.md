@@ -21,7 +21,7 @@
 - `codex/app-server-process.js`：本地 `codex app-server` 子进程启动和 stdio session 绑定。
 - `codex/turn-output-buffer.js`：Codex delta 输出聚合和卡片摘要截断。
 - `cli/check-codex-app-server.js`：启动本机 Codex app-server 并验证 initialize 完成。
-- `cli/check-config.js`：检查飞书凭据、白名单、默认工作目录和基础 runtime 配置。
+- `cli/check-config.js`：检查飞书凭据、用户/群聊白名单、默认工作目录和基础 runtime 配置。
 - `cli/smoke-codex-turn.js`：不依赖飞书的 Codex app-server smoke turn 入口。
 - `config/app-config.js`：从环境变量解析 fca 本地配置，不读取真实凭据文件。
 - `logging/json-logger.js`：按 `FCA_LOG_LEVEL` 输出 JSONL 结构化日志。

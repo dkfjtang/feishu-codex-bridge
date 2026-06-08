@@ -233,6 +233,48 @@ test("createBridgeApp wires message dedup store into event handler", async () =>
   assert.deepEqual(result, { status: "skipped", reason: "Duplicate Feishu message" });
 });
 
+test("createBridgeApp passes allowed group chat ids to event handler", async () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_GROUP_CHAT_IDS: "oc_allowed",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    botOpenId: "ou_bot",
+    codexAppServerFactory: () => ({
+      start: async () => ({
+        onEvent: () => () => {},
+      }),
+    }),
+    feishuTransport: {},
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
+  });
+
+  await app.start();
+  const result = await app.eventHandler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_123",
+        chat_id: "oc_denied",
+        chat_type: "group",
+        message_type: "text",
+        content: JSON.stringify({
+          text: "@_user_1 hello",
+          mentions: [{ key: "@_user_1", id: { open_id: "ou_bot" } }],
+        }),
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "skipped", reason: "Feishu group chat is not allowed" });
+});
+
 function emptyMessageDedupStore() {
   return {
     has: async () => false,

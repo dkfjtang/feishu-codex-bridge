@@ -7,6 +7,7 @@ export class FeishuEventHandler {
   #runtime;
   #expectedAppId;
   #botOpenId;
+  #allowedGroupChatIds;
   #now;
   #maxEventAgeMs;
   #messageDedupStore;
@@ -17,6 +18,7 @@ export class FeishuEventHandler {
     runtime,
     expectedAppId = null,
     botOpenId = null,
+    allowedGroupChatIds = [],
     now = () => Date.now(),
     maxEventAgeMs = 5 * 60 * 1000,
     messageDedupStore = null,
@@ -24,6 +26,7 @@ export class FeishuEventHandler {
     this.#runtime = runtime;
     this.#expectedAppId = expectedAppId;
     this.#botOpenId = botOpenId;
+    this.#allowedGroupChatIds = new Set(allowedGroupChatIds);
     this.#now = now;
     this.#maxEventAgeMs = maxEventAgeMs;
     this.#messageDedupStore = messageDedupStore;
@@ -43,6 +46,10 @@ export class FeishuEventHandler {
         return { status: "skipped", reason: error.message };
       }
       throw error;
+    }
+
+    if (!this.#canUseChat(message)) {
+      return { status: "skipped", reason: "Feishu group chat is not allowed" };
     }
 
     if (this.#seenMessageIds.has(message.messageId) || (await this.#hasSeenMessage(message.messageId))) {
@@ -112,6 +119,17 @@ export class FeishuEventHandler {
     current.then(cleanup, cleanup);
 
     return current;
+  }
+
+  #canUseChat(message) {
+    if (message.chatType !== "group") {
+      return true;
+    }
+    if (this.#allowedGroupChatIds.size === 0) {
+      return true;
+    }
+
+    return this.#allowedGroupChatIds.has(message.chatId);
   }
 }
 

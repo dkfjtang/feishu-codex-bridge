@@ -6,6 +6,7 @@ import { loadConfig } from "../../src/config/app-config.js";
 test("loadConfig parses comma separated open ids and semicolon separated workdirs", () => {
   const config = loadConfig({
     FCA_ALLOWED_OPEN_IDS: "ou_1, ou_2",
+    FCA_ALLOWED_GROUP_CHAT_IDS: "oc_1, oc_2",
     FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex;F:\\development\\IDSS",
     FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
     FEISHU_APP_ID: "cli_123",
@@ -19,6 +20,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   });
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
+  assert.deepEqual(config.allowedGroupChatIds, ["oc_1", "oc_2"]);
   assert.deepEqual(config.allowedWorkdirs, [
     "F:\\development\\f-codex",
     "F:\\development\\IDSS",
@@ -38,6 +40,7 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   const config = loadConfig({});
 
   assert.deepEqual(config.allowedOpenIds, []);
+  assert.deepEqual(config.allowedGroupChatIds, []);
   assert.deepEqual(config.allowedWorkdirs, []);
   assert.equal(config.defaultWorkdir, null);
   assert.equal(config.feishuAppId, null);

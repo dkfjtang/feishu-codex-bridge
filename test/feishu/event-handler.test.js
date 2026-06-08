@@ -105,6 +105,54 @@ test("handleMessageReceive handles group text when bot is mentioned", async () =
   assert.deepEqual(result, { status: "handled", taskStatus: "completed" });
 });
 
+test("handleMessageReceive skips mentioned group text when group chat is not allowed", async () => {
+  const handler = new FeishuEventHandler({
+    botOpenId: "ou_bot",
+    allowedGroupChatIds: ["oc_allowed"],
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not be called");
+      },
+      cancelActiveTask: async () => {
+        throw new Error("should not cancel from denied group");
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    groupMentionPayload({
+      messageId: "om_123",
+      chatId: "oc_denied",
+      text: "@_user_1 停止",
+    }),
+  );
+
+  assert.deepEqual(result, { status: "skipped", reason: "Feishu group chat is not allowed" });
+});
+
+test("handleMessageReceive allows mentioned group text when group chat is allowed", async () => {
+  const calls = [];
+  const handler = new FeishuEventHandler({
+    botOpenId: "ou_bot",
+    allowedGroupChatIds: ["oc_allowed"],
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(message);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    groupMentionPayload({ messageId: "om_123", chatId: "oc_allowed" }),
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].chatId, "oc_allowed");
+  assert.equal(calls[0].chatType, "group");
+  assert.deepEqual(result, { status: "handled", taskStatus: "completed" });
+});
+
 test("handleMessageReceive serializes messages in the same chat", async () => {
   const calls = [];
   let markFirstStarted;
@@ -296,6 +344,24 @@ function textPayload({ messageId, chatId, text = "hello" }) {
         chat_type: "p2p",
         message_type: "text",
         content: JSON.stringify({ text }),
+      },
+    },
+  };
+}
+
+function groupMentionPayload({ messageId, chatId, text = "@_user_1 hello" }) {
+  return {
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: messageId,
+        chat_id: chatId,
+        chat_type: "group",
+        message_type: "text",
+        content: JSON.stringify({
+          text,
+          mentions: [{ key: "@_user_1", id: { open_id: "ou_bot" } }],
+        }),
       },
     },
   };

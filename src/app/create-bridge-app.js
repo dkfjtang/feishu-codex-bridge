@@ -65,6 +65,7 @@ export function createBridgeApp({
         runtime,
         expectedAppId: config.feishuAppId,
         botOpenId,
+        allowedGroupChatIds: config.allowedGroupChatIds,
         messageDedupStore,
       });
       return eventHandler;
