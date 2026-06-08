@@ -15,6 +15,29 @@ test("runDev returns a clear error when Feishu credentials are missing", async (
   assert.match(errorText, /FEISHU_APP_ID and FEISHU_APP_SECRET/);
 });
 
+test("runDev validates full bridge config before creating SDK transport", async () => {
+  let errorText = "";
+  const calls = [];
+
+  const exitCode = await runDev({
+    env: {
+      FEISHU_APP_ID: "cli_123",
+      FEISHU_APP_SECRET: "secret",
+    },
+    output: { write: () => {} },
+    errorOutput: { write: (text) => (errorText += text) },
+    transportFactory: () => {
+      calls.push("transport");
+      return {};
+    },
+  });
+
+  assert.equal(exitCode, 1);
+  assert.deepEqual(calls, []);
+  assert.match(errorText, /Configuration check failed/);
+  assert.match(errorText, /FCA_ALLOWED_OPEN_IDS must include at least one open_id/);
+});
+
 test("runDev creates sdk transport, probes bot identity, and starts bridge app", async () => {
   const calls = [];
   let outputText = "";
@@ -33,6 +56,9 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
     env: {
       FEISHU_APP_ID: "cli_123",
       FEISHU_APP_SECRET: "secret",
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
     },
     output: { write: (text) => (outputText += text) },
     errorOutput: { write: () => {} },
@@ -63,6 +89,9 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
   assert.deepEqual(calls[1].options.env, {
     FEISHU_APP_ID: "cli_123",
     FEISHU_APP_SECRET: "secret",
+    FCA_ALLOWED_OPEN_IDS: "ou_123",
+    FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+    FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
   });
   assert.equal(calls[1].options.feishuTransport, transport);
   assert.equal(calls[1].options.botOpenId, "ou_bot");

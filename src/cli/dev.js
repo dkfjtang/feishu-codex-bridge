@@ -1,4 +1,5 @@
 import { createBridgeApp } from "../app/create-bridge-app.js";
+import { checkConfig } from "./check-config.js";
 import { FeishuSdkTransport } from "../feishu/sdk-transport.js";
 
 export async function runDev({
@@ -11,6 +12,13 @@ export async function runDev({
   if (!env.FEISHU_APP_ID || !env.FEISHU_APP_SECRET) {
     errorOutput.write(
       "Feishu credentials are not configured. Set FEISHU_APP_ID and FEISHU_APP_SECRET before starting the real bridge.\n",
+    );
+    return 1;
+  }
+  const configCheck = checkConfig(env);
+  if (!configCheck.ok) {
+    errorOutput.write(
+      `Configuration check failed:\n${configCheck.errors.map((error) => `- ${error}`).join("\n")}\n`,
     );
     return 1;
   }
