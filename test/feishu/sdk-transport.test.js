@@ -73,6 +73,134 @@ test("patchMessageCard calls Feishu SDK im.message.patch with stringified card",
   assert.deepEqual(result, { data: {} });
 });
 
+test("sendCardKitMessage creates CardKit card and sends card instance message", async () => {
+  const calls = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({
+      cardkit: {
+        v1: {
+          card: {
+            create: async (payload) => {
+              calls.push({ method: "cardkit.card.create", payload });
+              return { data: { card_id: "card_123" } };
+            },
+          },
+        },
+      },
+      im: {
+        message: {
+          create: async (payload) => {
+            calls.push({ method: "im.message.create", payload });
+            return { data: { message_id: "om_123" } };
+          },
+        },
+      },
+    }),
+  });
+
+  const result = await transport.sendCardKitMessage({
+    receiveIdType: "chat_id",
+    receiveId: "oc_123",
+    card: {
+      config: { update_multi: true },
+      header: { title: { tag: "plain_text", content: "任务已接收" } },
+      elements: [
+        {
+          tag: "markdown",
+          text: { tag: "lark_md", content: "Codex 正在处理..." },
+        },
+      ],
+    },
+  });
+
+  assert.equal(calls[0].method, "cardkit.card.create");
+  assert.equal(calls[0].payload.data.type, "card_json");
+  assert.deepEqual(JSON.parse(calls[0].payload.data.data), {
+    schema: "2.0",
+    config: { update_multi: true },
+    header: { title: { tag: "plain_text", content: "任务已接收" } },
+    body: {
+      elements: [
+        {
+          tag: "markdown",
+          content: "Codex 正在处理...",
+        },
+      ],
+    },
+  });
+  assert.deepEqual(calls[1], {
+    method: "im.message.create",
+    payload: {
+      params: { receive_id_type: "chat_id" },
+      data: {
+        receive_id: "oc_123",
+        msg_type: "interactive",
+        content: JSON.stringify({
+          type: "card",
+          data: { card_id: "card_123" },
+        }),
+      },
+    },
+  });
+  assert.deepEqual(result, {
+    data: {
+      message_id: "om_123",
+      card_id: "card_123",
+      sequence: 1,
+    },
+  });
+});
+
+test("updateCardKitCard calls Feishu SDK CardKit full update with next sequence", async () => {
+  const calls = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({
+      cardkit: {
+        v1: {
+          card: {
+            update: async (payload) => {
+              calls.push(payload);
+              return { data: {} };
+            },
+          },
+        },
+      },
+    }),
+  });
+
+  const result = await transport.updateCardKitCard({
+    cardId: "card_123",
+    sequence: 4,
+    card: {
+      schema: "2.0",
+      header: { title: { tag: "plain_text", content: "Codex 执行中" } },
+      body: { elements: [{ tag: "markdown", content: "working" }] },
+    },
+  });
+
+  assert.deepEqual(calls, [
+    {
+      path: { card_id: "card_123" },
+      data: {
+        card: {
+          type: "card_json",
+          data: JSON.stringify({
+            schema: "2.0",
+            header: { title: { tag: "plain_text", content: "Codex 执行中" } },
+            body: { elements: [{ tag: "markdown", content: "working" }] },
+          }),
+        },
+        sequence: 4,
+      },
+    },
+  ]);
+  assert.deepEqual(result, { data: { sequence: 4 } });
+});
+
 test("probeBot returns bot open id and name from Feishu ping API", async () => {
   const transport = new FeishuSdkTransport({
     appId: "cli_123",

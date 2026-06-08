@@ -63,6 +63,65 @@ export class FeishuSdkTransport {
     });
   }
 
+  async sendCardKitMessage({ receiveIdType, receiveId, card }) {
+    const client = await this.#client();
+    const createResponse = await client.cardkit.v1.card.create({
+      data: {
+        type: "card_json",
+        data: JSON.stringify(toCardKitCard(card)),
+      },
+    });
+    const cardId = createResponse?.data?.card_id;
+    if (!cardId) {
+      return createResponse;
+    }
+
+    const sendResponse = await this.sendMessage({
+      receiveIdType,
+      receiveId,
+      msgType: "interactive",
+      content: JSON.stringify({
+        type: "card",
+        data: {
+          card_id: cardId,
+        },
+      }),
+    });
+
+    return {
+      ...sendResponse,
+      data: {
+        ...(sendResponse?.data ?? {}),
+        card_id: cardId,
+        sequence: 1,
+      },
+    };
+  }
+
+  async updateCardKitCard({ cardId, sequence, card }) {
+    const client = await this.#client();
+    const response = await client.cardkit.v1.card.update({
+      path: {
+        card_id: cardId,
+      },
+      data: {
+        card: {
+          type: "card_json",
+          data: JSON.stringify(toCardKitCard(card)),
+        },
+        sequence,
+      },
+    });
+
+    return {
+      ...response,
+      data: {
+        ...(response?.data ?? {}),
+        sequence,
+      },
+    };
+  }
+
   async probeBot() {
     const client = await this.#client();
     try {
@@ -232,6 +291,45 @@ function errorLogFields(error) {
     fields.errorCode = error.code;
   }
   return fields;
+}
+
+function toCardKitCard(card) {
+  if (card?.schema === "2.0") {
+    return card;
+  }
+
+  return {
+    schema: "2.0",
+    config: {
+      ...(card?.config ?? {}),
+      update_multi: true,
+    },
+    header: card?.header,
+    body: {
+      elements: (card?.elements ?? []).map(toCardKitElement).filter(Boolean),
+    },
+  };
+}
+
+function toCardKitElement(element) {
+  if (!element || typeof element !== "object") {
+    return null;
+  }
+  if (element.tag === "markdown" && element.text?.content) {
+    return {
+      tag: "markdown",
+      content: element.text.content,
+    };
+  }
+  if (element.tag === "note" && Array.isArray(element.elements)) {
+    return {
+      ...element,
+      elements: element.elements.map((item) =>
+        item?.tag === "lark_md" ? { ...item, content: item.content ?? "" } : item,
+      ),
+    };
+  }
+  return element;
 }
 
 async function createDefaultClient({ appId, appSecret }) {

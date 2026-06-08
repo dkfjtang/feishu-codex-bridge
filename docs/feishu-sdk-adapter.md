@@ -19,7 +19,7 @@ TaskCardController
 - `send` action 转换为发送 interactive 消息。
 - `update` action 转换为更新已发送消息卡片。
 - transport 通过依赖注入提供，便于测试和后续替换 SDK。
-- `FCA_CARD_CHANNEL=cardkit` 时，`FeishuMessageClient` 会优先调用可选 CardKit transport 方法；方法缺失或调用失败会回退普通 IM 卡片。
+- `FCA_CARD_CHANNEL=cardkit` 时，`FeishuMessageClient` 会优先调用 CardKit transport 方法；方法缺失或调用失败会回退普通 IM 卡片。
 - `FeishuSdkTransport` 使用 `@larksuiteoapi/node-sdk` 调用飞书消息 API。
 - `FeishuSdkTransport.probeBot()` 通过 bot ping API 探测 bot open_id，用于自回声过滤。
 - `FeishuSdkTransport.startMessageListener()` 使用飞书 SDK `EventDispatcher` 和 `WSClient` 监听 `im.message.receive_v1`。
@@ -196,5 +196,5 @@ transport payload：
 
 ## 后续接入点
 
-- 在 `FeishuSdkTransport` 中接入真实 CardKit 2.0 API 方法。
+- 继续评估 CardKit 局部更新和流式 element content 更新。
 - 增加长连接断线和重连策略评估。
