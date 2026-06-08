@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check-config": "node scripts/check-config.mjs",
     "dev": "node scripts/dev.mjs",
     "smoke:codex": "node scripts/smoke-codex-turn.mjs",
     "test": "node --test"

@@ -19,6 +19,7 @@
 - `codex/app-server-session.js`：Codex app-server initialize、thread/start、turn/start、turn/interrupt 和 notification 订阅封装。
 - `codex/app-server-process.js`：本地 `codex app-server` 子进程启动和 stdio session 绑定。
 - `codex/turn-output-buffer.js`：Codex delta 输出聚合和卡片摘要截断。
+- `cli/check-config.js`：检查飞书凭据、白名单、默认工作目录和基础 runtime 配置。
 - `cli/smoke-codex-turn.js`：不依赖飞书的 Codex app-server smoke turn 入口。
 - `config/app-config.js`：从环境变量解析 fca 本地配置，不读取真实凭据文件。
 - `feishu/event-handler.js`：处理飞书消息事件并调用 BridgeRuntime。

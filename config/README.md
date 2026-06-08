@@ -27,3 +27,19 @@
 ## 凭据规则
 
 `.env.example` 只能包含空值或示例值。真实 `.env` 文件不得提交到仓库。
+
+## 配置检查
+
+启动真实长连接前先运行：
+
+```powershell
+npm run check-config
+```
+
+该命令只读取当前环境变量，检查：
+
+- `FEISHU_APP_ID` 和 `FEISHU_APP_SECRET` 是否存在。
+- `FCA_ALLOWED_OPEN_IDS` 是否至少包含一个 `open_id`。
+- `FCA_ALLOWED_WORKDIRS` 是否至少包含一个本地目录。
+- `FCA_DEFAULT_WORKDIR` 是否存在且位于工作目录白名单内。
+- turn 超时、thread store 路径和 Codex 命令等基础 runtime 配置。

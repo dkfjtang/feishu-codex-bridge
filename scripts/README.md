@@ -15,6 +15,12 @@ npm test
 ```
 
 ```powershell
+npm run check-config
+```
+
+`check-config` 会检查飞书凭据、open_id 白名单、工作目录白名单、默认工作目录和基础 runtime 配置；它只读取当前环境变量，不读取或提交真实 `.env`。
+
+```powershell
 npm run dev
 ```
 

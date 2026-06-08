@@ -1,0 +1,78 @@
+import { loadConfig } from "../config/app-config.js";
+
+export function checkConfig(env = process.env) {
+  const config = loadConfig(env);
+  const errors = [];
+  const warnings = [];
+
+  if (!config.feishuAppId) {
+    errors.push("FEISHU_APP_ID is required");
+  }
+  if (!env.FEISHU_APP_SECRET?.trim()) {
+    errors.push("FEISHU_APP_SECRET is required");
+  }
+  if (config.allowedOpenIds.length === 0) {
+    errors.push("FCA_ALLOWED_OPEN_IDS must include at least one open_id");
+  }
+  if (config.allowedWorkdirs.length === 0) {
+    errors.push("FCA_ALLOWED_WORKDIRS must include at least one workdir");
+  }
+  if (!config.defaultWorkdir) {
+    errors.push("FCA_DEFAULT_WORKDIR is required");
+  } else if (!config.allowedWorkdirs.includes(config.defaultWorkdir)) {
+    errors.push("FCA_DEFAULT_WORKDIR must be included in FCA_ALLOWED_WORKDIRS");
+  }
+
+  if (config.codexListen !== "stdio://") {
+    warnings.push("FCA_CODEX_LISTEN is not stdio://; MVP only validates stdio://");
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    summary: {
+      allowedOpenIdCount: config.allowedOpenIds.length,
+      allowedWorkdirCount: config.allowedWorkdirs.length,
+      codexBin: config.codexBin,
+      defaultWorkdir: config.defaultWorkdir,
+      threadStorePath: config.threadStorePath,
+      turnTimeoutSeconds: config.turnTimeoutSeconds,
+    },
+  };
+}
+
+export async function runCheckConfig({
+  env = process.env,
+  output = process.stdout,
+  errorOutput = process.stderr,
+} = {}) {
+  let result;
+  try {
+    result = checkConfig(env);
+  } catch (error) {
+    errorOutput.write(`Configuration check failed:\n- ${error.message}\n`);
+    return 1;
+  }
+
+  if (!result.ok) {
+    errorOutput.write(`Configuration check failed:\n${result.errors.map((error) => `- ${error}`).join("\n")}\n`);
+    if (result.warnings.length > 0) {
+      errorOutput.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);
+    }
+    return 1;
+  }
+
+  output.write("Configuration check passed.\n");
+  output.write(`allowedOpenIds: ${result.summary.allowedOpenIdCount}\n`);
+  output.write(`allowedWorkdirs: ${result.summary.allowedWorkdirCount}\n`);
+  output.write(`defaultWorkdir: ${result.summary.defaultWorkdir}\n`);
+  output.write(`codexBin: ${result.summary.codexBin}\n`);
+  output.write(`threadStorePath: ${result.summary.threadStorePath}\n`);
+  output.write(`turnTimeoutSeconds: ${result.summary.turnTimeoutSeconds}\n`);
+  if (result.warnings.length > 0) {
+    output.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);
+  }
+
+  return 0;
+}
