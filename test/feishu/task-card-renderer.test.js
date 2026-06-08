@@ -251,6 +251,15 @@ test("renderTaskCard renders sanitized attachment approval model", () => {
   assert.equal(card.elements[1].tag, "action");
   assert.equal(card.elements[1].actions[0].value.requestId, "attachment-request");
   assert.equal(card.elements[1].actions[0].value.approvalId, "attachment-approval");
+  assert.deepEqual(
+    card.elements[1].actions.map((action) => action.value.fcaAction),
+    ["approval.details", "approval.resolve", "approval.resolve"],
+  );
+  assert.deepEqual(
+    card.elements[1].actions.slice(1).map((action) => action.value.decision),
+    ["decline", "cancel"],
+  );
+  assert.equal(JSON.stringify(card).includes("acceptForSession"), false);
   assert.equal(JSON.stringify(card).includes("file_secret"), false);
   assert.equal(JSON.stringify(card).includes("secret.txt"), false);
   assert.equal(JSON.stringify(card).includes("om_file_123456789"), false);

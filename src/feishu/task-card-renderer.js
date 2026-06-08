@@ -77,14 +77,26 @@ function approvalActionElements(snapshot) {
   return [
     {
       tag: "action",
-      actions: [
-        approvalButton("查看详情", "default", { ...value, fcaAction: "approval.details" }),
-        approvalButton("允许一次", "primary", { ...value, decision: "accept" }),
-        approvalButton("本会话允许", "default", { ...value, decision: "acceptForSession" }),
-        approvalButton("拒绝", "danger", { ...value, decision: "decline" }),
-        approvalButton("停止", "default", { ...value, decision: "cancel" }),
-      ],
+      actions: approvalButtonsFor(snapshot.approval, value),
     },
+  ];
+}
+
+function approvalButtonsFor(approval, value) {
+  if (approval?.type === "feishu_attachment_input") {
+    return [
+      approvalButton("查看详情", "default", { ...value, fcaAction: "approval.details" }),
+      approvalButton("拒绝", "danger", { ...value, decision: "decline" }),
+      approvalButton("停止", "default", { ...value, decision: "cancel" }),
+    ];
+  }
+
+  return [
+    approvalButton("查看详情", "default", { ...value, fcaAction: "approval.details" }),
+    approvalButton("允许一次", "primary", { ...value, decision: "accept" }),
+    approvalButton("本会话允许", "default", { ...value, decision: "acceptForSession" }),
+    approvalButton("拒绝", "danger", { ...value, decision: "decline" }),
+    approvalButton("停止", "default", { ...value, decision: "cancel" }),
   ];
 }
 
