@@ -125,7 +125,7 @@ fca 可以高度复用 OpenClaw 类飞书插件的交互体验，但不应完全
 - 私聊内发送 `状态`、`查询状态`、`任务状态`、`/status`、`status` 或 `task status`。
 - 群聊内明确 @ Bot 并发送上述状态文本。
 - fca 会绕过同 chat 队列，优先刷新当前 active task 的同一张任务卡片。
-- 如果当前会话没有 active task，Bridge 只返回 skipped，不额外发送包含内部状态的文本消息。
+- 如果当前会话没有 active task，Bridge 返回固定“当前会话没有正在运行的 Codex 任务。”文本，不额外发送 app-server、WebSocket、配置或 diagnostics 明细。
 
 ### 工作目录切换
 

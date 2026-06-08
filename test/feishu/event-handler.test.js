@@ -507,6 +507,40 @@ test("handleMessageReceive uses status fast path without waiting for queued chat
   await first;
 });
 
+test("handleMessageReceive replies no active task notice for idle status", async () => {
+  const notices = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for status command");
+      },
+      syncActiveTaskStatus: async ({ chatId }) => {
+        assert.equal(chatId, "oc_123");
+        return { status: "skipped", reason: "No active task for chat" };
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async (message) => {
+        notices.push(message);
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    textPayload({ messageId: "om_status_idle", chatId: "oc_123", text: "/status" }),
+  );
+
+  assert.deepEqual(result, { status: "handled", reason: "No active task for chat" });
+  assert.deepEqual(notices, [
+    {
+      chatId: "oc_123",
+      text: "当前会话没有正在运行的 Codex 任务。",
+    },
+  ]);
+  assert.equal(JSON.stringify(notices).includes("appServer"), false);
+  assert.equal(JSON.stringify(notices).includes("messageListener"), false);
+});
+
 test("handleMessageReceive replies cwd unsupported notice without starting a turn", async () => {
   const notices = [];
   const handler = new FeishuEventHandler({

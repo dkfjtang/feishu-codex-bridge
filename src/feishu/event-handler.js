@@ -104,9 +104,13 @@ export class FeishuEventHandler {
         return { status: "skipped", reason: "Status refresh is not supported" };
       }
 
-      return this.#runtime.syncActiveTaskStatus({
+      const result = await this.#runtime.syncActiveTaskStatus({
         chatId: message.chatId,
       });
+      if (result?.reason === "No active task for chat") {
+        return this.#handleNoActiveTaskStatus(message.chatId);
+      }
+      return result;
     }
 
     const unsupportedCommand = matchUnsupportedTextCommand(message.text);
@@ -202,6 +206,20 @@ export class FeishuEventHandler {
     });
 
     return { status: "handled", reason: command.reason };
+  }
+
+  async #handleNoActiveTaskStatus(chatId) {
+    const reason = "No active task for chat";
+    if (!this.#unsupportedMessageClient?.sendTextMessage) {
+      return { status: "skipped", reason };
+    }
+
+    await this.#unsupportedMessageClient.sendTextMessage({
+      chatId,
+      text: "当前会话没有正在运行的 Codex 任务。",
+    });
+
+    return { status: "handled", reason };
   }
 
   #precheck(payload) {
