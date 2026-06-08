@@ -413,10 +413,12 @@ test("startMessageListener registers receive handler and starts WS client", asyn
   });
   assert.equal(calls[1].type, "register");
   assert.equal(calls[2].type, "ws");
-  assert.deepEqual(calls[2].options, {
-    appId: "cli_123",
-    appSecret: "secret",
-  });
+  assert.equal(calls[2].options.appId, "cli_123");
+  assert.equal(calls[2].options.appSecret, "secret");
+  assert.equal(calls[2].options.autoReconnect, true);
+  assert.equal(typeof calls[2].options.onReconnecting, "function");
+  assert.equal(typeof calls[2].options.onReconnected, "function");
+  assert.equal(typeof calls[2].options.onError, "function");
   assert.equal(calls[3].type, "start");
   assert.equal(calls[3].options.eventDispatcher, dispatcher);
   assert.deepEqual(messages, [{ event: { message: { message_id: "om_123" } } }]);
@@ -442,6 +444,87 @@ test("startMessageListener registers receive handler and starts WS client", asyn
     chatId: null,
     chatType: null,
   });
+});
+
+test("startMessageListener can disable WS auto reconnect", async () => {
+  const calls = [];
+  const logEntries = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    autoReconnect: false,
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: (options) => ({
+      start: async () => {
+        calls.push(options);
+      },
+    }),
+    logger: fakeLogger(logEntries),
+  });
+
+  await transport.startMessageListener({
+    onMessageReceive: async () => {},
+  });
+
+  assert.equal(calls[0].appId, "cli_123");
+  assert.equal(calls[0].appSecret, "secret");
+  assert.equal(calls[0].autoReconnect, false);
+  assert.deepEqual(logEntries.find((entry) => entry.event === "feishu.ws_client_created"), {
+    level: "info",
+    event: "feishu.ws_client_created",
+    appId: "cli_123",
+    autoReconnect: false,
+  });
+});
+
+test("startMessageListener logs WS reconnect callbacks", async () => {
+  const logEntries = [];
+  let wsOptions;
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: (options) => {
+      wsOptions = options;
+      return {
+        start: async () => {},
+      };
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  await transport.startMessageListener({
+    onMessageReceive: async () => {},
+  });
+  wsOptions.onReconnecting();
+  wsOptions.onReconnected();
+  wsOptions.onError(new Error("socket closed"));
+
+  assert.deepEqual(logEntries.slice(-3), [
+    {
+      level: "info",
+      event: "feishu.ws_reconnecting",
+      appId: "cli_123",
+    },
+    {
+      level: "info",
+      event: "feishu.ws_reconnected",
+      appId: "cli_123",
+    },
+    {
+      level: "error",
+      event: "feishu.ws_error",
+      appId: "cli_123",
+      errorSummary: "socket closed",
+      errorName: "Error",
+    },
+  ]);
 });
 
 test("startMessageListener logs handler failures without message content", async () => {

@@ -12,6 +12,7 @@ const DEFAULT_THREAD_STORE_DRIVER = "json";
 const DEFAULT_MESSAGE_DEDUP_STORE_PATH = "data/message-dedup.json";
 const DEFAULT_APP_VERSION = "0.1.0";
 const DEFAULT_CARD_CHANNEL = "im";
+const DEFAULT_FEISHU_WS_AUTO_RECONNECT = true;
 const DEFAULT_CARD_FOOTER_FIELDS = [
   "status",
   "thread",
@@ -82,6 +83,11 @@ export function loadConfig(env = process.env) {
     approvalTimeoutSeconds,
     cardChannel: parseCardChannel(env.FCA_CARD_CHANNEL),
     cardFooterFields: parseCardFooterFields(env.FCA_CARD_FOOTER_FIELDS),
+    feishuWsAutoReconnect: parseBoolean(
+      env.FCA_FEISHU_WS_AUTO_RECONNECT,
+      DEFAULT_FEISHU_WS_AUTO_RECONNECT,
+      "FCA_FEISHU_WS_AUTO_RECONNECT",
+    ),
   };
 }
 
@@ -211,6 +217,22 @@ function parsePositiveInteger(value, fallback, name) {
   }
 
   return parsed;
+}
+
+function parseBoolean(value, fallback, name) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+
+  throw new Error(`${name} must be true or false`);
 }
 
 function parseCardFooterFields(value) {

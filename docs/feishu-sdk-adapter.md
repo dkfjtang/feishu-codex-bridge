@@ -24,6 +24,7 @@ TaskCardController
 - `FeishuSdkTransport.probeBot()` 通过 bot ping API 探测 bot open_id，用于自回声过滤。
 - `FeishuSdkTransport.startMessageListener()` 使用飞书 SDK `EventDispatcher` 和 `WSClient` 监听 `im.message.receive_v1`。
 - `FeishuSdkTransport.startMessageListener()` 已输出 WebSocket 启动、dispatcher 注册、入站事件收到和 handler 失败的结构化日志。
+- `FCA_FEISHU_WS_AUTO_RECONNECT` 控制 SDK `WSClient` 的自动重连，默认 `true`；显式设为 `false` 时只关闭 SDK 自动重连，不改变 message dedup、旧事件丢弃和启动失败清理。
 
 ## transport 接口
 
@@ -83,6 +84,9 @@ TaskCardController
 - `feishu.ws_handlers_registered`
 - `feishu.ws_client_created`
 - `feishu.ws_started`
+- `feishu.ws_reconnecting`
+- `feishu.ws_reconnected`
+- `feishu.ws_error`
 - `feishu.ws_start_failed`
 - `feishu.ws_cleanup_failed`
 - `feishu.ws_stopped`
@@ -94,9 +98,11 @@ TaskCardController
 - `bridge.stopped`
 - `bridge.shutdown_failed`
 
-日志只记录 `appId`、事件类型、`message_id`、`chat_id`、`chat_type`、CardKit 回退原因和错误摘要；不记录 `appSecret`、verification token、encrypt key、消息正文、卡片 payload 或完整事件 payload。
+日志只记录 `appId`、事件类型、`message_id`、`chat_id`、`chat_type`、重连状态、CardKit 回退原因和错误摘要；不记录 `appSecret`、verification token、encrypt key、消息正文、卡片 payload 或完整事件 payload。
 
 `FeishuSdkTransport.startMessageListener()` 重建 listener 前会先关闭旧 `WSClient`，避免重复长连接残留；如果新 `WSClient.start()` 失败，也会 best-effort 关闭半初始化 client，且保留原始启动失败向上抛出。
+
+`FeishuSdkTransport` 默认把 `autoReconnect=true` 传给 SDK `WSClient`，并把 SDK 的 reconnecting / reconnected / error callback 转成 `feishu.ws_reconnecting`、`feishu.ws_reconnected`、`feishu.ws_error`。需要排查 SDK 重连行为或避免测试环境自动重连时，可设置 `FCA_FEISHU_WS_AUTO_RECONNECT=false`。
 
 `runDev` 会注册 `SIGINT` / `SIGTERM` 退出信号。收到信号后，Bridge 先停止 Codex app-server，再 best-effort 调用 transport `stop()`；SDK transport 会通过 `WSClient.close({})` 关闭已启动的长连接，并记录关闭成功或失败。停机失败会记录 `bridge.shutdown_failed`、首个错误摘要和 `failedResources`，但不会输出额外敏感信息。
 
@@ -217,4 +223,4 @@ CardKit 转换层会为 legacy IM card 元素补稳定 `element_id`：
 ## 后续接入点
 
 - 继续评估 footer / action 等非正文元素的 CardKit 局部更新。
-- 增加长连接断线和重连策略评估。
+- 继续评估是否需要在 SDK 自动重连之外增加进程级健康探测。

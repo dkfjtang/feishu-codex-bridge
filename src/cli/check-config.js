@@ -51,6 +51,7 @@ export function checkConfig(env = process.env) {
       approvalTimeoutSeconds: config.approvalTimeoutSeconds,
       cardChannel: config.cardChannel,
       cardFooterFields: config.cardFooterFields,
+      feishuWsAutoReconnect: config.feishuWsAutoReconnect,
     },
   };
 }
@@ -96,6 +97,7 @@ export async function runCheckConfig({
   output.write(`approvalTimeoutSeconds: ${result.summary.approvalTimeoutSeconds}\n`);
   output.write(`cardChannel: ${result.summary.cardChannel}\n`);
   output.write(`cardFooterFields: ${result.summary.cardFooterFields.join(",")}\n`);
+  output.write(`feishuWsAutoReconnect: ${result.summary.feishuWsAutoReconnect}\n`);
   if (result.warnings.length > 0) {
     output.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);
   }

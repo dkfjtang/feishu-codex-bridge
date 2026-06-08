@@ -26,6 +26,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
     FCA_APPROVAL_TIMEOUT_SECONDS: "30",
     FCA_CARD_CHANNEL: "cardkit",
     FCA_CARD_FOOTER_FIELDS: "status,elapsed,tokens,model",
+    FCA_FEISHU_WS_AUTO_RECONNECT: "false",
   });
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
@@ -55,6 +56,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   assert.equal(config.approvalTimeoutSeconds, 30);
   assert.equal(config.cardChannel, "cardkit");
   assert.deepEqual(config.cardFooterFields, ["status", "elapsed", "tokens", "model"]);
+  assert.equal(config.feishuWsAutoReconnect, false);
 });
 
 test("loadConfig merges group configuration file with env group settings", () => {
@@ -118,6 +120,7 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   assert.equal(config.turnTimeoutSeconds, 900);
   assert.equal(config.approvalTimeoutSeconds, 300);
   assert.equal(config.cardChannel, "im");
+  assert.equal(config.feishuWsAutoReconnect, true);
   assert.deepEqual(config.cardFooterFields, [
     "status",
     "thread",
@@ -202,5 +205,12 @@ test("loadConfig rejects unsupported card channel", () => {
   assert.throws(
     () => loadConfig({ FCA_CARD_CHANNEL: "legacy" }),
     /FCA_CARD_CHANNEL must be im or cardkit/,
+  );
+});
+
+test("loadConfig rejects malformed Feishu WS auto reconnect flag", () => {
+  assert.throws(
+    () => loadConfig({ FCA_FEISHU_WS_AUTO_RECONNECT: "sometimes" }),
+    /FCA_FEISHU_WS_AUTO_RECONNECT must be true or false/,
   );
 });

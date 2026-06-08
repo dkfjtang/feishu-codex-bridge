@@ -7,6 +7,7 @@ export class FeishuSdkTransport {
   #createEventDispatcher;
   #createWsClient;
   #logger;
+  #autoReconnect;
   #clientPromise = null;
   #wsClient = null;
 
@@ -19,6 +20,7 @@ export class FeishuSdkTransport {
     createEventDispatcher = createDefaultEventDispatcher,
     createWsClient = createDefaultWsClient,
     logger = null,
+    autoReconnect = true,
   }) {
     if (!appId?.trim() || !appSecret?.trim()) {
       throw new Error("FeishuSdkTransport requires FEISHU_APP_ID and FEISHU_APP_SECRET");
@@ -31,6 +33,7 @@ export class FeishuSdkTransport {
     this.#createClient = createClient;
     this.#createEventDispatcher = createEventDispatcher;
     this.#createWsClient = createWsClient;
+    this.#autoReconnect = autoReconnect !== false;
     this.#logger = logger ?? {
       info: () => {},
       error: () => {},
@@ -213,9 +216,15 @@ export class FeishuSdkTransport {
     const wsClient = await this.#createWsClient({
       appId: this.#appId,
       appSecret: this.#appSecret,
+      autoReconnect: this.#autoReconnect,
+      onReconnecting: () => this.#log("warn", "feishu.ws_reconnecting"),
+      onReconnected: () => this.#log("info", "feishu.ws_reconnected"),
+      onError: (error) => this.#log("error", "feishu.ws_error", errorLogFields(error)),
     });
     this.#wsClient = wsClient;
-    this.#log("info", "feishu.ws_client_created");
+    this.#log("info", "feishu.ws_client_created", {
+      autoReconnect: this.#autoReconnect,
+    });
 
     try {
       const result = await wsClient.start({ eventDispatcher: dispatcher });
@@ -408,11 +417,22 @@ async function createDefaultEventDispatcher({ verificationToken, encryptKey }) {
   });
 }
 
-async function createDefaultWsClient({ appId, appSecret }) {
+async function createDefaultWsClient({
+  appId,
+  appSecret,
+  autoReconnect,
+  onReconnecting,
+  onReconnected,
+  onError,
+}) {
   const sdk = await import("@larksuiteoapi/node-sdk");
   return new sdk.WSClient({
     appId,
     appSecret,
     domain: sdk.Domain.Feishu,
+    autoReconnect,
+    onReconnecting,
+    onReconnected,
+    onError,
   });
 }

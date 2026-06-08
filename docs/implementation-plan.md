@@ -119,6 +119,7 @@ Done 标准：
 - `BridgeRuntime` 已输出 `task.received`、`task.thread_created` / `task.thread_reused`、`task.turn_started`、`task.completed` / `task.failed` / `task.cancelled` 等结构化事件。
 - `runDev` 已按 `FCA_LOG_LEVEL` 创建 JSONL logger，并写入 stderr，便于容器或本机进程采集；同一个 logger 已贯穿飞书 SDK transport 和 runtime。
 - `FeishuSdkTransport` 已记录 WebSocket 启动阶段、事件收到和 handler 失败日志，字段不包含 app secret、消息正文或完整事件 payload。
+- `FCA_FEISHU_WS_AUTO_RECONNECT` 已支持控制飞书 SDK `WSClient` 自动重连，默认 `true`；SDK reconnecting / reconnected / error callback 会进入脱敏 JSONL 日志。
 - `FeishuEventHandler` 已记录 `feishu.message_handled` / `feishu.message_skipped` gate 结果和处理耗时，字段只包含 message/chat 维度、result status、duration、task status 或跳过原因，不记录消息正文、附件 key、文件名或完整 payload。
 - `FeishuMessageClient` 已将飞书 API `code/msg` 和 transport 异常归一为 `FeishuApiError`，结构化日志会记录 `errorName`、`errorCode` 和 `errorActionType`。
 - `TaskCardController` 已串行化同一卡片的 send / update，避免运行中 patch 与最终态 patch 并发乱序。
@@ -153,7 +154,7 @@ Done 标准：
 - 普通群聊文本仍跳过；进入 `BridgeRuntime` 后仍使用飞书发送者 `open_id` 白名单作为权限依据。
 - 群聊任务继续按 `chat_id` 串行，避免同一群内多个 Codex turn 并发打乱卡片状态。
 - 私聊非文本消息已具备安全提示前置闭环，为后续文件下载和回传能力保留清晰边界。
-- 长驻进程已具备基础退出治理：本机开发入口收到 `SIGINT` / `SIGTERM` 后会 best-effort 停止 app-server 子进程和飞书 transport，降低长任务或 WS listener 残留风险。
+- 长驻进程已具备基础退出治理：本机开发入口收到 `SIGINT` / `SIGTERM` 后会 best-effort 停止 app-server 子进程和飞书 transport，降低长任务或 WS listener 残留风险；飞书长连接默认依赖 SDK 自动重连，重连阶段会输出结构化日志。
 
 候选能力：
 

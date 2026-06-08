@@ -66,6 +66,7 @@ test("checkConfig accepts a complete MVP configuration", () => {
       turnTimeoutSeconds: 900,
       approvalTimeoutSeconds: 300,
       cardChannel: "im",
+      feishuWsAutoReconnect: true,
       cardFooterFields: [
         "status",
         "thread",
@@ -127,4 +128,5 @@ test("runCheckConfig prints summary and returns zero on valid config", async () 
   assert.match(stdout, /approvalTimeoutSeconds: 300/);
   assert.match(stdout, /cardChannel: im/);
   assert.match(stdout, /cardFooterFields: status,thread,turn,elapsed,tokens,model,version,error,cwd/);
+  assert.match(stdout, /feishuWsAutoReconnect: true/);
 });

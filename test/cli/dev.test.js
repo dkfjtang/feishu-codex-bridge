@@ -84,6 +84,7 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
     appSecret: "secret",
     verificationToken: "",
     encryptKey: "",
+    autoReconnect: true,
   });
   assert.equal(typeof calls[0].options.logger.info, "function");
   assert.equal(calls[1].type, "app");
@@ -102,6 +103,42 @@ test("runDev creates sdk transport, probes bot identity, and starts bridge app",
   assert.equal(typeof calls[3].onMessageReceive, "function");
   assert.equal(typeof calls[3].onCardAction, "function");
   assert.match(outputText, /bot Codex \(ou_bot\)/);
+});
+
+test("runDev passes disabled Feishu WS reconnect option to sdk transport", async () => {
+  const calls = [];
+  const transport = {
+    probeBot: async () => ({ ok: true, botOpenId: "ou_bot", botName: "Codex" }),
+    startMessageListener: async () => {},
+  };
+
+  const exitCode = await runDev({
+    env: {
+      FEISHU_APP_ID: "cli_123",
+      FEISHU_APP_SECRET: "secret",
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+      FCA_FEISHU_WS_AUTO_RECONNECT: "false",
+    },
+    output: { write: () => {} },
+    errorOutput: { write: () => {} },
+    transportFactory: (options) => {
+      calls.push(options);
+      return transport;
+    },
+    appFactory: () => ({
+      config: { defaultWorkdir: "F:\\development\\f-codex" },
+      start: async () => {},
+      eventHandler: {
+        handleMessageReceive: async () => {},
+        handleCardAction: async () => {},
+      },
+    }),
+  });
+
+  assert.equal(exitCode, 0);
+  assert.equal(calls[0].autoReconnect, false);
 });
 
 function withoutLogger(options) {

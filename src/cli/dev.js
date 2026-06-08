@@ -34,6 +34,7 @@ export async function runDev({
     appSecret: env.FEISHU_APP_SECRET,
     verificationToken: env.FEISHU_VERIFICATION_TOKEN ?? "",
     encryptKey: env.FEISHU_ENCRYPT_KEY ?? "",
+    autoReconnect: configCheck.summary.feishuWsAutoReconnect,
     logger,
   });
   const probe = await feishuTransport.probeBot();
