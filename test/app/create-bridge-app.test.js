@@ -49,6 +49,7 @@ test("createBridgeApp wires config, policy, store, runtime, and handler", async 
       getThread: async () => null,
       saveThread: async () => {},
     }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
   });
 
   await app.start();
@@ -106,6 +107,7 @@ test("createBridgeApp passes bot open id to event handler self-echo guard", asyn
       getThread: async () => null,
       saveThread: async () => {},
     }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
   });
 
   await app.start();
@@ -166,6 +168,7 @@ test("createBridgeApp passes logger to bridge runtime task handling", async () =
       getThread: async () => null,
       saveThread: async () => {},
     }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
   });
 
   await app.start();
@@ -186,3 +189,53 @@ test("createBridgeApp passes logger to bridge runtime task handling", async () =
   assert.equal(logEntries.at(-1).messageId, "om_123");
   assert.equal(logEntries.at(-1).turnId, "turn_123");
 });
+
+test("createBridgeApp wires message dedup store into event handler", async () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+      FCA_THREAD_STORE_PATH: "ignored-threads.json",
+      FCA_MESSAGE_DEDUP_STORE_PATH: "ignored-dedup.json",
+    },
+    codexAppServerFactory: () => ({
+      start: async () => ({
+        onEvent: () => () => {},
+      }),
+    }),
+    feishuTransport: {},
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+    messageDedupStoreFactory: (config) => ({
+      has: async (messageId) =>
+        config.messageDedupStorePath === "ignored-dedup.json" && messageId === "om_123",
+      mark: async () => {},
+    }),
+  });
+
+  await app.start();
+  const result = await app.eventHandler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_123",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "text",
+        content: JSON.stringify({ text: "hello" }),
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "skipped", reason: "Duplicate Feishu message" });
+});
+
+function emptyMessageDedupStore() {
+  return {
+    has: async () => false,
+    mark: async () => {},
+  };
+}

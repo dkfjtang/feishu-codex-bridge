@@ -11,6 +11,8 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
     FEISHU_APP_ID: "cli_123",
     FCA_CODEX_BIN: "codex",
     FCA_THREAD_STORE_PATH: "data\\threads.json",
+    FCA_MESSAGE_DEDUP_STORE_PATH: "data\\message-dedup.json",
+    FCA_MESSAGE_DEDUP_TTL_SECONDS: "3600",
     FCA_TURN_TIMEOUT_SECONDS: "120",
   });
 
@@ -23,6 +25,8 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   assert.equal(config.defaultWorkdir, "F:\\development\\f-codex");
   assert.equal(config.codexBin, "codex");
   assert.equal(config.threadStorePath, "data\\threads.json");
+  assert.equal(config.messageDedupStorePath, "data\\message-dedup.json");
+  assert.equal(config.messageDedupTtlSeconds, 3600);
   assert.equal(config.turnTimeoutSeconds, 120);
 });
 
@@ -37,6 +41,8 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   assert.equal(config.codexListen, "stdio://");
   assert.equal(config.logLevel, "info");
   assert.equal(config.threadStorePath, "data/threads.json");
+  assert.equal(config.messageDedupStorePath, "data/message-dedup.json");
+  assert.equal(config.messageDedupTtlSeconds, 86400);
   assert.equal(config.turnTimeoutSeconds, 900);
 });
 
@@ -44,5 +50,12 @@ test("loadConfig rejects non-positive turn timeout", () => {
   assert.throws(
     () => loadConfig({ FCA_TURN_TIMEOUT_SECONDS: "0" }),
     /FCA_TURN_TIMEOUT_SECONDS must be a positive integer/,
+  );
+});
+
+test("loadConfig rejects non-positive message dedup ttl", () => {
+  assert.throws(
+    () => loadConfig({ FCA_MESSAGE_DEDUP_TTL_SECONDS: "0" }),
+    /FCA_MESSAGE_DEDUP_TTL_SECONDS must be a positive integer/,
   );
 });

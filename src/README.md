@@ -7,7 +7,7 @@
 - `feishu`：飞书长连接、事件解析和消息发送。
 - `codex`：`codex app-server` 子进程和 JSON-RPC client。
 - `policy`：用户白名单、工作目录白名单和动作策略。
-- `store`：飞书用户到 Codex thread 的映射。
+- `store`：飞书用户到 Codex thread 的映射，以及飞书消息去重记录。
 - `runtime`：任务状态机、超时和错误处理。
 - `logging`：JSONL 结构化日志输出。
 
@@ -26,7 +26,7 @@
 - `config/app-config.js`：从环境变量解析 fca 本地配置，不读取真实凭据文件。
 - `logging/json-logger.js`：按 `FCA_LOG_LEVEL` 输出 JSONL 结构化日志。
 - `feishu/event-handler.js`：处理飞书消息事件并调用 BridgeRuntime。
-- `feishu/event-handler.js` 已具备基础 OpenClaw 对齐护栏：app_id 校验、自回声过滤、message_id 去重、过期事件丢弃、按 chat 串行队列和取消快路径。
+- `feishu/event-handler.js` 已具备基础 OpenClaw 对齐护栏：app_id 校验、自回声过滤、持久化 message_id 去重、过期事件丢弃、按 chat 串行队列和取消快路径。
 - `feishu/message-client.js`：将 SDK 无关的飞书消息 action 转换为 transport 调用。
 - `feishu/message-event-parser.js`：解析 `im.message.receive_v1` 私聊文本事件。
 - `feishu/sdk-transport.js`：使用飞书 Node SDK 发送/更新卡片、探测 bot open_id，并启动长连接消息监听。
@@ -36,4 +36,5 @@
 - `policy/access-policy.js`：飞书 `open_id` 和本地工作目录白名单校验。
 - `runtime/runtime-task.js`：Codex notification 到 fca task 状态的最小转换。
 - `runtime/bridge-runtime.js`：私聊文本消息到 policy、thread store、Codex session、streamed events 和任务卡片的最小编排，并对运行中卡片更新做节流，支持 active task 取消和结构化任务日志。
+- `store/message-dedup-store.js`：飞书消息 id 的内存/JSON 文件去重窗口，防止重连或进程重启回放重复执行。
 - `store/thread-store.js`：飞书用户和工作目录到 Codex thread 的内存/JSON 文件映射。

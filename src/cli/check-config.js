@@ -36,6 +36,8 @@ export function checkConfig(env = process.env) {
       allowedWorkdirCount: config.allowedWorkdirs.length,
       codexBin: config.codexBin,
       defaultWorkdir: config.defaultWorkdir,
+      messageDedupStorePath: config.messageDedupStorePath,
+      messageDedupTtlSeconds: config.messageDedupTtlSeconds,
       threadStorePath: config.threadStorePath,
       turnTimeoutSeconds: config.turnTimeoutSeconds,
     },
@@ -69,6 +71,8 @@ export async function runCheckConfig({
   output.write(`defaultWorkdir: ${result.summary.defaultWorkdir}\n`);
   output.write(`codexBin: ${result.summary.codexBin}\n`);
   output.write(`threadStorePath: ${result.summary.threadStorePath}\n`);
+  output.write(`messageDedupStorePath: ${result.summary.messageDedupStorePath}\n`);
+  output.write(`messageDedupTtlSeconds: ${result.summary.messageDedupTtlSeconds}\n`);
   output.write(`turnTimeoutSeconds: ${result.summary.turnTimeoutSeconds}\n`);
   if (result.warnings.length > 0) {
     output.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);

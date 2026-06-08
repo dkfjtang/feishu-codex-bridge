@@ -4,6 +4,7 @@ import { CodexAppServerProcess } from "../codex/app-server-process.js";
 import { FeishuEventHandler } from "../feishu/event-handler.js";
 import { FeishuMessageClient } from "../feishu/message-client.js";
 import { FileThreadStore } from "../store/thread-store.js";
+import { FileMessageDedupStore } from "../store/message-dedup-store.js";
 import { TaskCardController } from "../feishu/task-card-controller.js";
 import { loadConfig } from "../config/app-config.js";
 
@@ -15,6 +16,11 @@ export function createBridgeApp({
   logger = null,
   threadStoreFactory = (config) =>
     new FileThreadStore({ filePath: config.threadStorePath }),
+  messageDedupStoreFactory = (config) =>
+    new FileMessageDedupStore({
+      filePath: config.messageDedupStorePath,
+      ttlMs: config.messageDedupTtlSeconds * 1000,
+    }),
 } = {}) {
   const config = loadConfig(env);
   const policy = new AccessPolicy({
@@ -23,6 +29,7 @@ export function createBridgeApp({
     defaultWorkdir: config.defaultWorkdir,
   });
   const threadStore = threadStoreFactory(config);
+  const messageDedupStore = messageDedupStoreFactory(config);
   const feishuMessageClient = new FeishuMessageClient({
     transport: feishuTransport,
   });
@@ -56,6 +63,7 @@ export function createBridgeApp({
         runtime,
         expectedAppId: config.feishuAppId,
         botOpenId,
+        messageDedupStore,
       });
       return eventHandler;
     },

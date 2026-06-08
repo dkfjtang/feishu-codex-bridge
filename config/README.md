@@ -23,6 +23,8 @@
 | `FCA_LOG_LEVEL` | JSONL 结构化日志级别，可选 `debug` / `info` / `warn` / `error`，默认 `info`。 |
 | `FCA_TURN_TIMEOUT_SECONDS` | 单个 turn 超时时间。 |
 | `FCA_THREAD_STORE_PATH` | 本地 thread 映射 JSON 文件路径。 |
+| `FCA_MESSAGE_DEDUP_STORE_PATH` | 本地消息去重 JSON 文件路径，用于 WebSocket 重连或进程重启后的回放去重。 |
+| `FCA_MESSAGE_DEDUP_TTL_SECONDS` | 消息去重保留时间，默认 `86400` 秒。 |
 
 ## 凭据规则
 
@@ -42,7 +44,7 @@ npm run check-config
 - `FCA_ALLOWED_OPEN_IDS` 是否至少包含一个 `open_id`。
 - `FCA_ALLOWED_WORKDIRS` 是否至少包含一个本地目录。
 - `FCA_DEFAULT_WORKDIR` 是否存在且位于工作目录白名单内。
-- turn 超时、thread store 路径和 Codex 命令等基础 runtime 配置。
+- turn 超时、thread store、message dedup store 路径和 Codex 命令等基础 runtime 配置。
 
 ## 日志输出
 

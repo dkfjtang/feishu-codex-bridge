@@ -9,6 +9,7 @@ export class FeishuEventHandler {
   #botOpenId;
   #now;
   #maxEventAgeMs;
+  #messageDedupStore;
   #seenMessageIds = new Set();
   #chatQueues = new Map();
 
@@ -18,12 +19,14 @@ export class FeishuEventHandler {
     botOpenId = null,
     now = () => Date.now(),
     maxEventAgeMs = 5 * 60 * 1000,
+    messageDedupStore = null,
   }) {
     this.#runtime = runtime;
     this.#expectedAppId = expectedAppId;
     this.#botOpenId = botOpenId;
     this.#now = now;
     this.#maxEventAgeMs = maxEventAgeMs;
+    this.#messageDedupStore = messageDedupStore;
   }
 
   async handleMessageReceive(payload) {
@@ -42,10 +45,11 @@ export class FeishuEventHandler {
       throw error;
     }
 
-    if (this.#seenMessageIds.has(message.messageId)) {
+    if (this.#seenMessageIds.has(message.messageId) || (await this.#hasSeenMessage(message.messageId))) {
       return { status: "skipped", reason: "Duplicate Feishu message" };
     }
     this.#seenMessageIds.add(message.messageId);
+    await this.#markSeenMessage(message.messageId);
 
     if (isCancelText(message.text)) {
       if (typeof this.#runtime.cancelActiveTask !== "function") {
@@ -65,6 +69,14 @@ export class FeishuEventHandler {
         taskStatus: task.snapshot().status,
       };
     });
+  }
+
+  async #hasSeenMessage(messageId) {
+    return (await this.#messageDedupStore?.has(messageId)) ?? false;
+  }
+
+  async #markSeenMessage(messageId) {
+    await this.#messageDedupStore?.mark(messageId);
   }
 
   #precheck(payload) {

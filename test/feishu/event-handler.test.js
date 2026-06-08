@@ -201,6 +201,50 @@ test("handleMessageReceive skips duplicate message ids", async () => {
   assert.deepEqual(second, { status: "skipped", reason: "Duplicate Feishu message" });
 });
 
+test("handleMessageReceive skips message ids already marked by dedup store", async () => {
+  const seen = new Set(["om_123"]);
+  const handler = new FeishuEventHandler({
+    messageDedupStore: {
+      has: async (messageId) => seen.has(messageId),
+      mark: async (messageId) => seen.add(messageId),
+    },
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not be called");
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(textPayload({ messageId: "om_123", chatId: "oc_123" }));
+
+  assert.deepEqual(result, { status: "skipped", reason: "Duplicate Feishu message" });
+});
+
+test("handleMessageReceive marks message id in dedup store before handling", async () => {
+  const calls = [];
+  const handler = new FeishuEventHandler({
+    messageDedupStore: {
+      has: async (messageId) => {
+        calls.push(`has:${messageId}`);
+        return false;
+      },
+      mark: async (messageId) => {
+        calls.push(`mark:${messageId}`);
+      },
+    },
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(`handle:${message.messageId}`);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+    },
+  });
+
+  await handler.handleMessageReceive(textPayload({ messageId: "om_123", chatId: "oc_123" }));
+
+  assert.deepEqual(calls, ["has:om_123", "mark:om_123", "handle:om_123"]);
+});
+
 function textPayload({ messageId, chatId, text = "hello" }) {
   return {
     event: {

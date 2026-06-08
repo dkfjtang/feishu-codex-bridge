@@ -52,6 +52,8 @@ test("checkConfig accepts a complete MVP configuration", () => {
       allowedWorkdirCount: 1,
       codexBin: "codex",
       defaultWorkdir: "F:\\development\\f-codex",
+      messageDedupStorePath: "data/message-dedup.json",
+      messageDedupTtlSeconds: 86400,
       threadStorePath: "data/threads.json",
       turnTimeoutSeconds: 900,
     },
@@ -92,4 +94,5 @@ test("runCheckConfig prints summary and returns zero on valid config", async () 
   assert.equal(exitCode, 0);
   assert.match(stdout, /Configuration check passed/);
   assert.match(stdout, /allowedOpenIds: 1/);
+  assert.match(stdout, /messageDedupStorePath: data\/message-dedup.json/);
 });
