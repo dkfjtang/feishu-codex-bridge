@@ -4,8 +4,21 @@ export function parseCardActionEvent(payload) {
   const event = payload?.event ?? {};
   const value = event.action?.value ?? payload?.action?.value ?? {};
 
-  if (value.fcaAction !== "approval.resolve") {
+  if (!["approval.resolve", "approval.details"].includes(value.fcaAction)) {
     throw new UnsupportedFeishuCardActionError("Unsupported Feishu card action");
+  }
+
+  if (value.fcaAction === "approval.details") {
+    return {
+      action: "approval.details",
+      taskId: value.taskId ?? null,
+      requestId: value.requestId ?? null,
+      approvalId: value.approvalId ?? null,
+      itemId: value.itemId ?? null,
+      openId: operatorOpenId(event),
+      chatId: event.context?.open_chat_id ?? value.chatId ?? null,
+      messageId: event.context?.open_message_id ?? value.messageId ?? null,
+    };
   }
 
   const decision = normalizeDecision(value.decision);

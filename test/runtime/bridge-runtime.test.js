@@ -521,6 +521,93 @@ test("resolveApproval answers pending app-server approval request", async () => 
   await pendingTask;
 });
 
+test("showApprovalDetails expands pending approval card", async () => {
+  let emitEvent;
+  let requestHandler;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  const syncSnapshots = [];
+  const logEntries = [];
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      onRequest: (handler) => {
+        requestHandler = handler;
+        return () => {};
+      },
+      startTurnHook: () => {},
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncSnapshots.push(task.snapshot());
+        task.attachCard("om_123");
+      },
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  const pendingTask = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  const approvalEvent = {
+    id: 7,
+    method: "item/permissions/requestApproval",
+    params: {
+      approvalId: "approval_123",
+      itemId: "item_123",
+      threadId: "thr_new",
+      turnId: "turn_new",
+      permissions: {
+        fileSystem: { write: ["F:\\development\\f-codex\\secret.txt"] },
+      },
+    },
+  };
+  emitEvent({
+    method: approvalEvent.method,
+    params: approvalEvent.params,
+    requestId: approvalEvent.id,
+    serverRequest: true,
+  });
+  const approvalResponse = requestHandler(approvalEvent);
+
+  const result = await runtime.showApprovalDetails({
+    openId: "ou_allowed",
+    taskId: "msg_123",
+    requestId: 7,
+    approvalId: "approval_123",
+  });
+
+  assert.deepEqual(result, { status: "handled", taskStatus: "waiting_approval" });
+  assert.equal(syncSnapshots.at(-1).approval.detailExpanded, true);
+  assert.equal(JSON.stringify(syncSnapshots.at(-1).approval).includes("secret.txt"), false);
+  assert.equal(logEntries.some((entry) => entry.event === "task.approval_details_requested"), true);
+
+  await runtime.resolveApproval({
+    openId: "ou_allowed",
+    decision: "decline",
+    taskId: "msg_123",
+    requestId: 7,
+    approvalId: "approval_123",
+  });
+  assert.deepEqual(await approvalResponse, { decision: "decline" });
+  emitEvent({ method: "turn/completed", params: { status: "failed", error: { message: "denied" } } });
+  await pendingTask;
+});
+
 test("approval request safely declines when it times out", async () => {
   let emitEvent;
   let requestHandler;

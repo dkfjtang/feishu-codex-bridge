@@ -118,6 +118,14 @@ export class FeishuEventHandler {
       return { status: "skipped", reason: "Feishu group sender is not allowed" };
     }
 
+    if (action.action === "approval.details") {
+      if (typeof this.#runtime.showApprovalDetails !== "function") {
+        return { status: "skipped", reason: "Approval details are not supported" };
+      }
+
+      return this.#runtime.showApprovalDetails(action);
+    }
+
     if (typeof this.#runtime.resolveApproval !== "function") {
       return { status: "skipped", reason: "Approval actions are not supported" };
     }

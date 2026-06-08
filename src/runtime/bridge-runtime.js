@@ -241,6 +241,33 @@ export class BridgeRuntime {
     };
   }
 
+  async showApprovalDetails({ openId = null, taskId = null, requestId = null, approvalId = null, itemId = null }) {
+    if (!openId) {
+      return { status: "skipped", reason: "Feishu operator open_id is required" };
+    }
+    if (!this.#policy.canUseOpenId(openId)) {
+      return { status: "skipped", reason: "Feishu user is not allowed" };
+    }
+
+    const pending = this.#findPendingApproval({ taskId, requestId, approvalId, itemId });
+    if (!pending) {
+      return { status: "skipped", reason: "No pending approval" };
+    }
+    if (!pending.task.showApprovalDetails()) {
+      return { status: "skipped", reason: "Approval is already resolved" };
+    }
+
+    this.#logTask("info", "task.approval_details_requested", pending.task, {
+      approvalOperatorOpenId: openId,
+    });
+    await this.#cardController.sync(pending.task);
+
+    return {
+      status: "handled",
+      taskStatus: pending.task.snapshot().status,
+    };
+  }
+
   #handleServerRequest(request) {
     if (!isApprovalRequest(request.method)) {
       throw new Error(`Unsupported server request: ${request.method}`);

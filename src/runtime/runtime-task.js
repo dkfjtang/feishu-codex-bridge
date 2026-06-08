@@ -91,6 +91,18 @@ export class RuntimeTask {
     }
   }
 
+  showApprovalDetails() {
+    if (!this.#approval || this.#approval.status !== "pending") {
+      return false;
+    }
+
+    this.#approval = {
+      ...this.#approval,
+      detailExpanded: true,
+    };
+    return true;
+  }
+
   handleCodexEvent(event) {
     if (this.#status === "cancelled") {
       return;

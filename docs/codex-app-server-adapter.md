@@ -261,8 +261,8 @@ failed
 
 - 将 Runtime Task 状态切到 `waiting_approval`。
 - 只记录脱敏后的 `requestId`、`method`、`approvalId`、`itemId`、审批类型、风险等级、风险因素和安全范围摘要。
-- 更新同一张飞书任务卡片为“需要确认”，并展示“允许一次 / 本会话允许 / 拒绝 / 停止”按钮。
-- `card.action.trigger` 回调会通过 pending approval 映射回写 app-server `{ "decision": "accept" | "acceptForSession" | "decline" | "cancel" }`。
+- 更新同一张飞书任务卡片为“需要确认”，并展示“查看详情 / 允许一次 / 本会话允许 / 拒绝 / 停止”按钮。
+- `card.action.trigger` 的 `approval.details` 回调会展开同一卡片的脱敏详情；`approval.resolve` 回调会通过 pending approval 映射回写 app-server `{ "decision": "accept" | "acceptForSession" | "decline" | "cancel" }`。
 - 如果用户没有在 `FCA_APPROVAL_TIMEOUT_SECONDS` 内点击按钮，默认向 app-server 回写 `{ "decision": "decline" }`，并 best-effort 更新卡片为已拒绝状态，避免无人值守时放行敏感动作。
 
 已确认的 approval server request 方法：
@@ -281,6 +281,7 @@ failed
 Codex approval server request
   -> Runtime Task status = waiting_approval
   -> Feishu approval card
+  -> optional approval.details expands sanitized card details
   -> user approve / reject
   -> app-server approval response
   -> turn continues or stops

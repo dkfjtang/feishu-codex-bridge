@@ -608,6 +608,47 @@ test("handleCardAction forwards approval action to runtime", async () => {
   ]);
 });
 
+test("handleCardAction forwards approval details action to runtime", async () => {
+  const calls = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      showApprovalDetails: async (action) => {
+        calls.push(action);
+        return { status: "handled", taskStatus: "waiting_approval" };
+      },
+    },
+  });
+
+  const result = await handler.handleCardAction({
+    event: {
+      operator: { open_id: "ou_123" },
+      context: { open_chat_id: "oc_123", open_message_id: "om_123" },
+      action: {
+        value: {
+          fcaAction: "approval.details",
+          taskId: "task_123",
+          requestId: 7,
+          approvalId: "approval_123",
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "handled", taskStatus: "waiting_approval" });
+  assert.deepEqual(calls, [
+    {
+      action: "approval.details",
+      taskId: "task_123",
+      requestId: 7,
+      approvalId: "approval_123",
+      itemId: null,
+      openId: "ou_123",
+      chatId: "oc_123",
+      messageId: "om_123",
+    },
+  ]);
+});
+
 test("handleCardAction skips approval action when sender is not allowed for group", async () => {
   const handler = new FeishuEventHandler({
     groupSenderOpenIds: { oc_group: ["ou_allowed"] },

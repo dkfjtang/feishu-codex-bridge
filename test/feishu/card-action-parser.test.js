@@ -37,6 +37,35 @@ test("parseCardActionEvent extracts approval resolution action", () => {
   });
 });
 
+test("parseCardActionEvent extracts approval details action", () => {
+  const action = parseCardActionEvent({
+    event: {
+      operator: { open_id: "ou_123" },
+      context: { open_chat_id: "oc_123", open_message_id: "om_123" },
+      action: {
+        value: {
+          fcaAction: "approval.details",
+          taskId: "task_123",
+          requestId: 7,
+          approvalId: "approval_123",
+          itemId: "item_123",
+        },
+      },
+    },
+  });
+
+  assert.deepEqual(action, {
+    action: "approval.details",
+    taskId: "task_123",
+    requestId: 7,
+    approvalId: "approval_123",
+    itemId: "item_123",
+    openId: "ou_123",
+    chatId: "oc_123",
+    messageId: "om_123",
+  });
+});
+
 test("parseCardActionEvent rejects unsupported actions", () => {
   assert.throws(
     () => parseCardActionEvent({ event: { action: { value: { fcaAction: "other" } } } }),

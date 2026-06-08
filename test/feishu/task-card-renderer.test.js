@@ -140,12 +140,46 @@ test("renderTaskCard renders waiting approval summary", () => {
   );
   assert.equal(card.elements[1].tag, "action");
   assert.deepEqual(
-    card.elements[1].actions.map((action) => action.value.decision),
+    card.elements[1].actions.map((action) => action.value.fcaAction),
+    ["approval.details", "approval.resolve", "approval.resolve", "approval.resolve", "approval.resolve"],
+  );
+  assert.deepEqual(
+    card.elements[1].actions.slice(1).map((action) => action.value.decision),
     ["accept", "acceptForSession", "decline", "cancel"],
   );
-  assert.equal(card.elements[1].actions[0].value.fcaAction, "approval.resolve");
   assert.equal(card.elements[1].actions[0].value.requestId, 7);
   assert.equal(card.elements[0].text.content.includes("secret.txt"), false);
+});
+
+test("renderTaskCard renders expanded approval details", () => {
+  const card = renderTaskCard({
+    taskId: "task_123",
+    status: "waiting_approval",
+    summaryText: "summary",
+    finalText: "",
+    approval: {
+      requestId: 7,
+      approvalId: "approval_123456789",
+      itemId: "item_123",
+      status: "pending",
+      detailExpanded: true,
+      summary: "Codex 请求额外权限，需要审批。",
+      details: [
+        "风险: 高",
+        "风险因素: 权限变更 / 文件写入",
+        "目录: f-codex",
+        "权限: 读 1 / 写 2",
+        "网络目标: api.example.com",
+        "包含说明: 是",
+        "附加提示: 已脱敏",
+      ],
+    },
+  });
+
+  assert.equal(
+    card.elements[0].text.content,
+    "审批详情\n\nCodex 请求额外权限，需要审批。\n\n风险: 高\n风险因素: 权限变更 / 文件写入\n目录: f-codex\n权限: 读 1 / 写 2\n网络目标: api.example.com\n包含说明: 是\n附加提示: 已脱敏\n\n仅展示脱敏摘要，未展示命令正文、diff、完整路径或原始 payload。\n\napproval: approval",
+  );
 });
 
 test("renderTaskCard truncates overly long card body", () => {

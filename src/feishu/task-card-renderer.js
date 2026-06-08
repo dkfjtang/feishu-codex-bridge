@@ -67,6 +67,7 @@ function approvalActionElements(snapshot) {
     {
       tag: "action",
       actions: [
+        approvalButton("查看详情", "default", { ...value, fcaAction: "approval.details" }),
         approvalButton("允许一次", "primary", { ...value, decision: "accept" }),
         approvalButton("本会话允许", "default", { ...value, decision: "acceptForSession" }),
         approvalButton("拒绝", "danger", { ...value, decision: "decline" }),
@@ -105,19 +106,22 @@ function cardBody(snapshot) {
 }
 
 function approvalBody(snapshot) {
+  const expanded = snapshot.approval?.detailExpanded === true;
   return joinBody([
+    expanded ? "审批详情" : null,
     snapshot.approval?.summary ?? "Codex 请求审批。",
-    approvalDetails(snapshot.approval),
+    approvalDetails(snapshot.approval, expanded),
+    expanded ? "仅展示脱敏摘要，未展示命令正文、diff、完整路径或原始 payload。" : null,
     snapshot.approval?.approvalId ? `approval: ${shortId(String(snapshot.approval.approvalId))}` : null,
   ]);
 }
 
-function approvalDetails(approval) {
+function approvalDetails(approval, expanded = false) {
   if (!Array.isArray(approval?.details) || approval.details.length === 0) {
     return null;
   }
 
-  return approval.details.slice(0, 6).join("\n");
+  return approval.details.slice(0, expanded ? 10 : 6).join("\n");
 }
 
 function stageText(snapshot, fallbackPrefix = "阶段") {
