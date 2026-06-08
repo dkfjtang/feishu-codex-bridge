@@ -319,12 +319,6 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
         attachmentApprovalRiskReasons: ["飞书附件读取"],
       },
     },
-    attachmentDownload: {
-      status: "disabled",
-      reason: "Feishu attachment download adapter is not configured",
-      attachmentKind: "file",
-      approvalId: "attachment-om_enabl",
-    },
   });
   assert.deepEqual(notices, [
     {
@@ -339,7 +333,7 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
   assert.equal(JSON.stringify(result).includes("om_enabled_file"), false);
 });
 
-test("handleMessageReceive passes sanitized request to attachment download adapter", async () => {
+test("handleMessageReceive does not call attachment download adapter before approval", async () => {
   const downloadRequests = [];
   const handler = new FeishuEventHandler({
     runtime: {
@@ -377,23 +371,9 @@ test("handleMessageReceive passes sanitized request to attachment download adapt
     },
   });
 
-  assert.deepEqual(downloadRequests, [
-    {
-      attachmentKind: "file",
-      messageId: "om_download_file",
-      chatId: "oc_123",
-      chatType: "p2p",
-      approvalId: "attachment-om_downl",
-      requestId: "attachment-request-om_downl",
-      itemId: "attachment-item-om_downl",
-    },
-  ]);
-  assert.deepEqual(result.attachmentDownload, {
-    status: "mocked",
-    reason: "download adapter contract exercised",
-    attachmentKind: "file",
-    approvalId: "attachment-om_downl",
-  });
+  assert.deepEqual(downloadRequests, []);
+  assert.equal(result.attachmentDownload, undefined);
+  assert.equal(result.attachmentPendingApproval.requestId, "attachment-request-om_downl");
   assert.equal(JSON.stringify(downloadRequests).includes("file_secret"), false);
   assert.equal(JSON.stringify(downloadRequests).includes("secret.txt"), false);
 });
@@ -443,8 +423,6 @@ test("handleMessageReceive logs enabled attachment approval summary without raw 
     attachmentApprovalRequestId: "attachment-request-om_enabl",
     attachmentApprovalId: "attachment-om_enabl",
     attachmentApprovalItemId: "attachment-item-om_enabl",
-    attachmentDownloadStatus: "disabled",
-    attachmentDownloadReason: "Feishu attachment download adapter is not configured",
   });
   assert.equal(JSON.stringify(logEntries).includes("image_secret"), false);
   assert.equal(JSON.stringify(logEntries).includes("secret.png"), false);

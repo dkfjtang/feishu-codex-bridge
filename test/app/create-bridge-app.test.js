@@ -220,7 +220,6 @@ test("createBridgeApp passes file input feature flag to event handler", async ()
       ],
     },
     attachmentPendingApproval: result.attachmentPendingApproval,
-    attachmentDownload: result.attachmentDownload,
   });
   assert.equal(result.attachmentPendingApproval.requestId, "attachment-request-om_file_");
   assert.equal(result.attachmentPendingApproval.approvalId, "attachment-om_file_");
@@ -229,12 +228,7 @@ test("createBridgeApp passes file input feature flag to event handler", async ()
     "approval:attachment-om_file_",
     "item:attachment-item-om_file_",
   ]);
-  assert.deepEqual(result.attachmentDownload, {
-    status: "disabled",
-    reason: "Feishu attachment download adapter is not configured",
-    attachmentKind: "file",
-    approvalId: "attachment-om_file_",
-  });
+  assert.equal(result.attachmentDownload, undefined);
   assert.equal(messages.length, 1);
   assert.equal(JSON.stringify(messages).includes("file_secret"), false);
   assert.equal(JSON.stringify(messages).includes("secret.txt"), false);
@@ -348,7 +342,8 @@ test("createBridgeApp diagnostics sanitize attachment download adapter status", 
   assert.equal(JSON.stringify(app.getDiagnostics()).includes("secret.txt"), false);
 });
 
-test("createBridgeApp wires transport-backed attachment download adapter", async () => {
+test("createBridgeApp exposes transport-backed attachment adapter without pre-approval download", async () => {
+  const downloadRequests = [];
   const app = createBridgeApp({
     env: {
       FCA_ALLOWED_OPEN_IDS: "ou_123",
@@ -363,13 +358,16 @@ test("createBridgeApp wires transport-backed attachment download adapter", async
     }),
     feishuTransport: {
       sendMessage: async () => ({ data: { message_id: "om_notice" } }),
-      downloadAttachment: async (request) => ({
-        status: "mocked",
-        reason: "transport contract exercised",
-        attachmentKind: request.attachmentKind,
-        approvalId: request.approvalId,
-        fileKey: "should_not_escape",
-      }),
+      downloadAttachment: async (request) => {
+        downloadRequests.push(request);
+        return {
+          status: "mocked",
+          reason: "transport contract exercised",
+          attachmentKind: request.attachmentKind,
+          approvalId: request.approvalId,
+          fileKey: "should_not_escape",
+        };
+      },
     },
     threadStoreFactory: () => ({
       getThread: async () => null,
@@ -395,12 +393,9 @@ test("createBridgeApp wires transport-backed attachment download adapter", async
   assert.deepEqual(app.getDiagnostics().features.attachmentDownloadAdapter, {
     status: "configured",
   });
-  assert.deepEqual(result.attachmentDownload, {
-    status: "mocked",
-    reason: "transport contract exercised",
-    attachmentKind: "file",
-    approvalId: "attachment-om_file_",
-  });
+  assert.deepEqual(downloadRequests, []);
+  assert.equal(result.attachmentDownload, undefined);
+  assert.equal(result.attachmentPendingApproval.requestId, "attachment-request-om_file_");
   assert.equal(JSON.stringify(result).includes("should_not_escape"), false);
   assert.equal(JSON.stringify(result).includes("file_secret"), false);
 });
