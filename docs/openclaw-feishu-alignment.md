@@ -129,6 +129,7 @@ fca 映射：
 - 附件输入策略层已能按开关、chat 类型和附件分类给出 `eligible` 决策；真实下载仍未接入，避免在缺少审批和审计闭环时读取飞书文件内容。
 - 附件下载审批摘要已先收敛为 Codex 风格的脱敏风险信息；后续可映射到现有 approval card，但当前不触发审批按钮或下载动作。
 - 附件审批摘要已验证可渲染为现有 waiting approval 卡片模型，复用当前卡片结构和按钮 value 形状；后续接入前仍需要真实 pending approval 映射和下载执行器。
+- 附件 pending approval 骨架已生成脱敏 request / approval / item id、keys 和日志字段；当前不写入运行时 pending map，避免按钮误回调后触发不存在的下载流程。
 
 差异理由：
 

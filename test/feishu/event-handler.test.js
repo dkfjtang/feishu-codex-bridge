@@ -282,6 +282,43 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
         "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
       ],
     },
+    attachmentPendingApproval: {
+      requestId: "attachment-request-om_enabl",
+      approvalId: "attachment-om_enabl",
+      itemId: "attachment-item-om_enabl",
+      keys: [
+        "request:attachment-request-om_enabl",
+        "approval:attachment-om_enabl",
+        "item:attachment-item-om_enabl",
+      ],
+      approval: {
+        requestId: "attachment-request-om_enabl",
+        approvalId: "attachment-om_enabl",
+        itemId: "attachment-item-om_enabl",
+        status: "pending",
+        detailExpanded: false,
+        type: "feishu_attachment_input",
+        summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+        risk: "中",
+        riskReasons: ["飞书附件读取"],
+        details: [
+          "风险: 中",
+          "风险因素: 飞书附件读取",
+          "附件类型: 文件",
+          "消息: om_enabl",
+          "会话类型: 私聊",
+          "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+        ],
+      },
+      logFields: {
+        attachmentApprovalRequestId: "attachment-request-om_enabl",
+        attachmentApprovalId: "attachment-om_enabl",
+        attachmentApprovalItemId: "attachment-item-om_enabl",
+        attachmentKind: "file",
+        attachmentApprovalRisk: "中",
+        attachmentApprovalRiskReasons: ["飞书附件读取"],
+      },
+    },
   });
   assert.deepEqual(notices, [
     {
@@ -293,6 +330,7 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
   assert.equal(JSON.stringify(notices).includes("secret.txt"), false);
   assert.equal(JSON.stringify(result).includes("file_secret"), false);
   assert.equal(JSON.stringify(result).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(result).includes("om_enabled_file"), false);
 });
 
 test("handleMessageReceive logs enabled attachment approval summary without raw details", async () => {
@@ -337,10 +375,15 @@ test("handleMessageReceive logs enabled attachment approval summary without raw 
     attachmentApprovalType: "feishu_attachment_input",
     attachmentApprovalRisk: "中",
     attachmentApprovalRiskReasons: ["飞书附件读取"],
+    attachmentApprovalRequestId: "attachment-request-om_enabl",
+    attachmentApprovalId: "attachment-om_enabl",
+    attachmentApprovalItemId: "attachment-item-om_enabl",
   });
   assert.equal(JSON.stringify(logEntries).includes("image_secret"), false);
   assert.equal(JSON.stringify(logEntries).includes("secret.png"), false);
   assert.equal(JSON.stringify(logEntries).includes("仅展示脱敏摘要"), false);
+  assert.equal(JSON.stringify(logEntries).includes("om_enabled_image"), true);
+  assert.equal(JSON.stringify(logEntries).includes("attachment-request-om_enabled_image"), false);
 });
 
 test("handleMessageReceive deduplicates unsupported non-text notices", async () => {

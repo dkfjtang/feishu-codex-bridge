@@ -93,6 +93,42 @@ export function buildAttachmentApprovalCardModel(summary, {
   };
 }
 
+export function buildAttachmentPendingApproval(envelope, decision, {
+  taskId = null,
+} = {}) {
+  const summary = buildAttachmentApprovalSummary(envelope, decision);
+  const messageId = shortId(String(envelope?.messageId ?? "unknown"));
+  const approvalId = `attachment-${messageId}`;
+  const itemId = `attachment-item-${messageId}`;
+  const requestId = `attachment-request-${messageId}`;
+  const keys = [
+    `request:${requestId}`,
+    `approval:${approvalId}`,
+    `item:${itemId}`,
+    taskId ? `task:${taskId}` : null,
+  ].filter(Boolean);
+
+  return {
+    requestId,
+    approvalId,
+    itemId,
+    keys,
+    approval: buildAttachmentApprovalCardModel(summary, {
+      requestId,
+      approvalId,
+      itemId,
+    }),
+    logFields: {
+      attachmentApprovalRequestId: requestId,
+      attachmentApprovalId: approvalId,
+      attachmentApprovalItemId: itemId,
+      attachmentKind: summary.attachmentKind,
+      attachmentApprovalRisk: summary.risk,
+      attachmentApprovalRiskReasons: summary.riskReasons,
+    },
+  };
+}
+
 function shortId(value) {
   if (!value) {
     return "unknown";

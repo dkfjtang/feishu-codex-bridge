@@ -219,7 +219,15 @@ test("createBridgeApp passes file input feature flag to event handler", async ()
         "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
       ],
     },
+    attachmentPendingApproval: result.attachmentPendingApproval,
   });
+  assert.equal(result.attachmentPendingApproval.requestId, "attachment-request-om_file_");
+  assert.equal(result.attachmentPendingApproval.approvalId, "attachment-om_file_");
+  assert.deepEqual(result.attachmentPendingApproval.keys, [
+    "request:attachment-request-om_file_",
+    "approval:attachment-om_file_",
+    "item:attachment-item-om_file_",
+  ]);
   assert.equal(messages.length, 1);
   assert.equal(JSON.stringify(messages).includes("file_secret"), false);
   assert.equal(JSON.stringify(messages).includes("secret.txt"), false);

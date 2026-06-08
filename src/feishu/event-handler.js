@@ -9,6 +9,7 @@ import {
 } from "./card-action-parser.js";
 import {
   buildAttachmentApprovalSummary,
+  buildAttachmentPendingApproval,
   decideAttachmentInput,
 } from "./attachment-policy.js";
 
@@ -185,6 +186,8 @@ export class FeishuEventHandler {
     });
     const approvalSummary =
       decision.action === "eligible" ? buildAttachmentApprovalSummary(envelope, decision) : null;
+    const pendingApproval =
+      decision.action === "eligible" ? buildAttachmentPendingApproval(envelope, decision) : null;
     const messageId = envelope.messageId;
     if (decision.action === "skip") {
       return {
@@ -220,6 +223,9 @@ export class FeishuEventHandler {
     };
     if (approvalSummary) {
       result.attachmentApproval = approvalSummary;
+    }
+    if (pendingApproval) {
+      result.attachmentPendingApproval = pendingApproval;
     }
     return result;
   }
@@ -343,6 +349,9 @@ export class FeishuEventHandler {
       fields.attachmentApprovalType = result.attachmentApproval.type;
       fields.attachmentApprovalRisk = result.attachmentApproval.risk;
       fields.attachmentApprovalRiskReasons = result.attachmentApproval.riskReasons;
+    }
+    if (result?.attachmentPendingApproval?.logFields) {
+      Object.assign(fields, result.attachmentPendingApproval.logFields);
     }
     write(event, fields);
   }

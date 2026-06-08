@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   buildAttachmentApprovalCardModel,
   buildAttachmentApprovalSummary,
+  buildAttachmentPendingApproval,
   decideAttachmentInput,
 } from "../../src/feishu/attachment-policy.js";
 
@@ -177,4 +178,62 @@ test("buildAttachmentApprovalCardModel maps summary to task-card approval shape"
       ],
     },
   );
+});
+
+test("buildAttachmentPendingApproval creates sanitized pending mapping metadata", () => {
+  const envelope = {
+    messageId: "om_file_123456789",
+    chatId: "oc_123",
+    chatType: "p2p",
+    attachmentKind: "file",
+    fileKey: "file_secret",
+    fileName: "secret.txt",
+  };
+  const pending = buildAttachmentPendingApproval(
+    envelope,
+    { attachmentKind: "file" },
+    { taskId: "task_123" },
+  );
+
+  assert.deepEqual(pending, {
+    requestId: "attachment-request-om_file_",
+    approvalId: "attachment-om_file_",
+    itemId: "attachment-item-om_file_",
+    keys: [
+      "request:attachment-request-om_file_",
+      "approval:attachment-om_file_",
+      "item:attachment-item-om_file_",
+      "task:task_123",
+    ],
+    approval: {
+      requestId: "attachment-request-om_file_",
+      approvalId: "attachment-om_file_",
+      itemId: "attachment-item-om_file_",
+      status: "pending",
+      detailExpanded: false,
+      type: "feishu_attachment_input",
+      summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+      risk: "中",
+      riskReasons: ["飞书附件读取"],
+      details: [
+        "风险: 中",
+        "风险因素: 飞书附件读取",
+        "附件类型: 文件",
+        "消息: om_file_",
+        "会话类型: 私聊",
+        "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+      ],
+    },
+    logFields: {
+      attachmentApprovalRequestId: "attachment-request-om_file_",
+      attachmentApprovalId: "attachment-om_file_",
+      attachmentApprovalItemId: "attachment-item-om_file_",
+      attachmentKind: "file",
+      attachmentApprovalRisk: "中",
+      attachmentApprovalRiskReasons: ["飞书附件读取"],
+    },
+  });
+  assert.equal(JSON.stringify(pending).includes("file_secret"), false);
+  assert.equal(JSON.stringify(pending).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(pending).includes("om_file_123456789"), false);
 });
