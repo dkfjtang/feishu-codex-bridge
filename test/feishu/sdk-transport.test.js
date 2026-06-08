@@ -344,6 +344,7 @@ test("startMessageListener preserves start failure when cleanup close fails", as
 
 test("stop closes started WS client", async () => {
   const calls = [];
+  const logEntries = [];
   const transport = new FeishuSdkTransport({
     appId: "cli_123",
     appSecret: "secret",
@@ -359,6 +360,7 @@ test("stop closes started WS client", async () => {
         calls.push({ type: "close", params });
       },
     }),
+    logger: fakeLogger(logEntries),
   });
 
   await transport.startMessageListener({
@@ -367,6 +369,40 @@ test("stop closes started WS client", async () => {
   await transport.stop();
 
   assert.deepEqual(calls, ["start", { type: "close", params: {} }]);
+  assert.equal(logEntries.some((entry) => entry.event === "feishu.ws_stopped"), true);
+});
+
+test("stop logs and propagates WS close failures", async () => {
+  const logEntries = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: () => ({
+      start: async () => {},
+      close: async () => {
+        throw new Error("close failed");
+      },
+    }),
+    logger: fakeLogger(logEntries),
+  });
+
+  await transport.startMessageListener({
+    onMessageReceive: async () => {},
+  });
+
+  await assert.rejects(() => transport.stop(), /close failed/);
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "error",
+    event: "feishu.ws_stop_failed",
+    appId: "cli_123",
+    errorSummary: "close failed",
+    errorName: "Error",
+  });
 });
 
 test("startMessageListener closes previous WS client before replacing it", async () => {

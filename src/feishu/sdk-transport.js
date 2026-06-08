@@ -160,7 +160,13 @@ export class FeishuSdkTransport {
     const wsClient = this.#wsClient;
     this.#wsClient = null;
     if (wsClient && typeof wsClient.close === "function") {
-      await wsClient.close({});
+      try {
+        await wsClient.close({});
+        this.#log("info", "feishu.ws_stopped");
+      } catch (error) {
+        this.#log("error", "feishu.ws_stop_failed", errorLogFields(error));
+        throw error;
+      }
     }
   }
 

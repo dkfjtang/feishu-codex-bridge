@@ -81,7 +81,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 
 | 优先级 | OpenClaw 源码能力 | fca 目标 |
 | --- | --- | --- |
-| P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接，并补充 WS lifecycle / event dispatch 结构化日志；已补退出信号治理、重建前关闭旧连接和启动失败清理，后续继续评估断线自动重连策略 |
+| P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接，并补充 WS lifecycle / event dispatch 结构化日志；已补退出信号治理、关闭结果日志、重建前关闭旧连接和启动失败清理，后续继续评估断线自动重连策略 |
 | P0 | 消息事件去重、回放过滤、自回声过滤 | 已实现基础护栏和持久化去重窗口，避免进程重启后重复处理 |
 | P0 | 持续回复卡片更新、节流和最终态兜底 | 已实现 running 节流、阶段标签更新、同一卡片互斥 flush、发送/更新错误分类退避和最终态更新；后续继续补 CardKit 降级策略 |
 | P0 | 卡片 footer 的状态、会话和排障字段 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd |
@@ -119,7 +119,7 @@ fca 映射：
 - `FeishuSdkTransport.startMessageListener()` 保持 `EventDispatcher + WSClient` 入口，但不引入 OpenClaw 的多账号 channel monitor。
 - `FeishuSdkTransport.startMessageListener()` 重建 listener 前会先关闭旧 `WSClient`，启动失败时也会 best-effort 清理半初始化 client，避免重复长连接残留。
 - `runDev` 将同一个 JSONL logger 注入 transport 和 runtime，保证飞书连接、入站事件、Codex task 日志在同一日志流里关联。
-- 新增 `feishu.ws_starting`、`feishu.ws_dispatcher_created`、`feishu.ws_handlers_registered`、`feishu.ws_client_created`、`feishu.ws_started`、`feishu.ws_start_failed` 和 `feishu.ws_cleanup_failed`。
+- 新增 `feishu.ws_starting`、`feishu.ws_dispatcher_created`、`feishu.ws_handlers_registered`、`feishu.ws_client_created`、`feishu.ws_started`、`feishu.ws_start_failed`、`feishu.ws_cleanup_failed`、`feishu.ws_stopped` 和 `feishu.ws_stop_failed`。
 - 新增 `feishu.event_received` 和 `feishu.event_handler_failed`，只记录 `appId`、event type、`message_id`、`chat_id`、`chat_type` 和错误摘要。
 
 差异理由：
