@@ -48,14 +48,14 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | 能力 | OpenClaw 行为 | fca 当前状态 |
 | --- | --- | --- |
 | 私聊文本入口 | 支持 DM 消息进入 Agent | 已支持私聊文本解析 |
-| 卡片持续更新 | 先发卡片，再更新同一张卡片 | 已有 send / update action 和 controller |
+| 卡片持续更新 | 先发卡片，再更新同一张卡片 | 已有 send / update action 和 controller，并串行化同一卡片更新 |
 | footer | 可展示状态、耗时、模型、token 等 | 已展示 status / thread / turn / cwd |
 | app 归属校验 | 事件 app_id 不匹配时丢弃 | 已支持 `FEISHU_APP_ID` 校验 |
 | 自回声过滤 | bot 自己发出的消息不再处理 | 已支持 `botOpenId` 过滤入口 |
 | 去重 | WebSocket 重连重复消息只处理一次 | 已支持进程内 message_id 去重 |
 | 过期事件丢弃 | 重连回放的旧事件丢弃 | 已支持 `create_time` 年龄校验 |
 | 按会话串行 | 同一 chat / thread 内任务串行执行 | 已支持按 `chat_id` 串行 |
-| 更新节流 | 流式内容低频刷新卡片 | 已支持 Codex delta 运行中节流更新 |
+| 更新节流 | 流式内容低频刷新卡片 | 已支持 Codex delta 运行中节流更新和 card update 互斥 flush |
 | 取消快路径 | 用户发送停止文本时快速中断当前任务 | 已支持取消文本识别、cancelled 卡片和 `turn/interrupt` |
 
 ## 近期差距
@@ -65,7 +65,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | P0 | 真实飞书 SDK transport | 已接入 `@larksuiteoapi/node-sdk`，实现长连接和消息 API |
 | P0 | bot open_id 探测 | 已在 dev 启动时查询 bot 身份，并注入 `FeishuEventHandler` |
 | P0 | 按 chat / thread 串行队列 | 已增加 per-chat queue，避免同一会话并发 turn 打乱卡片 |
-| P0 | 卡片更新节流 | 已增加 delta 聚合低频 patch |
+| P0 | 卡片更新节流 | 已增加 delta 聚合低频 patch 和同一卡片更新队列 |
 | P1 | CardKit 优先、IM patch fallback | MVP 先用 IM card patch，后续增加 CardKit 2.0 |
 | P1 | 群聊策略 | 私聊稳定后再做群聊 @、群 allowlist、sender allowlist |
 | P1 | 卡片交互审批 | Codex approval event 映射到飞书按钮回调 |
@@ -78,7 +78,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | --- | --- | --- |
 | P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接；继续补结构化日志和连接状态可观测性 |
 | P0 | 消息事件去重、回放过滤、自回声过滤 | 已实现基础护栏；后续持久化去重窗口，避免进程重启后重复处理 |
-| P0 | 持续回复卡片更新、节流和最终态兜底 | 已实现 running 节流和最终态更新；后续补互斥 flush 和失败重试策略 |
+| P0 | 持续回复卡片更新、节流和最终态兜底 | 已实现 running 节流、同一卡片互斥 flush 和最终态更新；后续补失败重试策略 |
 | P0 | 卡片 footer 的状态、会话和排障字段 | 已展示 status / thread / turn / cwd；后续补耗时、模型、错误类型和 fca 版本 |
 | P1 | 群聊 @、群配置和发送者策略 | 私聊稳定后实现群 allowlist、sender allowlist 和 @ 触发 |
 | P1 | 敏感操作确认卡片 | 映射到 Codex approval event，不复用 OpenClaw tool approval 内核 |
@@ -111,7 +111,7 @@ OpenClaw 的卡片链路包含：
 fca 的目标：
 
 - MVP：普通 IM 卡片 send + patch，running / completed / failed 三态稳定。
-- 已增加运行中更新节流和 per-chat queue。
+- 已增加运行中更新节流、同一卡片互斥 flush、per-chat queue 和飞书 API 错误归一化。
 - 后续：再评估 CardKit 2.0 和更丰富 footer 指标。
 
 ## 不对齐项

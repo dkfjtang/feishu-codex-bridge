@@ -509,6 +509,53 @@ test("handleTextMessage logs thrown turn errors with trace fields", async () => 
     turnId: null,
     status: "queued",
     errorSummary: "app-server unavailable",
+    errorName: "Error",
+  });
+});
+
+test("handleTextMessage logs Feishu API error code when card sync fails", async () => {
+  const logEntries = [];
+  const feishuError = new Error("Feishu update failed (99991663): frequency limited");
+  feishuError.name = "FeishuApiError";
+  feishuError.code = 99991663;
+  feishuError.actionType = "update";
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession(),
+    cardController: {
+      sync: async () => {
+        throw feishuError;
+      },
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  await assert.rejects(
+    () =>
+      runtime.handleTextMessage({
+        messageId: "msg_123",
+        openId: "ou_allowed",
+        chatId: "oc_123",
+        text: "hello",
+      }),
+    /frequency limited/,
+  );
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "error",
+    event: "task.error",
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    cwd: "F:\\development\\f-codex",
+    threadId: null,
+    turnId: null,
+    status: "queued",
+    errorSummary: "Feishu update failed (99991663): frequency limited",
+    errorName: "FeishuApiError",
+    errorCode: 99991663,
+    errorActionType: "update",
   });
 });
 

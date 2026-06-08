@@ -125,9 +125,7 @@ export class BridgeRuntime {
 
       return task;
     } catch (error) {
-      this.#logTask("error", "task.error", task, {
-        errorSummary: error.message,
-      });
+      this.#logTask("error", "task.error", task, errorLogFields(error));
       throw error;
     } finally {
       if (this.#activeTasks.get(activeKey) === activeTask) {
@@ -244,4 +242,22 @@ export class BridgeRuntime {
     const write = this.#logger[level] ?? this.#logger.info ?? (() => {});
     write(event, fields);
   }
+}
+
+function errorLogFields(error) {
+  const fields = {
+    errorSummary: error instanceof Error ? error.message : String(error),
+  };
+
+  if (error instanceof Error && error.name) {
+    fields.errorName = error.name;
+  }
+  if (error?.code) {
+    fields.errorCode = error.code;
+  }
+  if (error?.actionType) {
+    fields.errorActionType = error.actionType;
+  }
+
+  return fields;
 }
