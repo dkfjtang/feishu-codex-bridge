@@ -17,6 +17,25 @@ export class FeishuMessageClient {
     throw new Error(`Unsupported Feishu action type: ${action.type}`);
   }
 
+  async sendTextMessage({ chatId, text }) {
+    if (!chatId) {
+      throw new Error("chatId is required");
+    }
+
+    const response = await callFeishuAction("send", () =>
+      this.#transport.sendMessage({
+        receiveIdType: "chat_id",
+        receiveId: chatId,
+        msgType: "text",
+        content: JSON.stringify({ text }),
+      }),
+    );
+
+    return {
+      messageId: response?.data?.message_id ?? null,
+    };
+  }
+
   async #sendCard(action) {
     const response = await callFeishuAction("send", () =>
       this.#transport.sendMessage({

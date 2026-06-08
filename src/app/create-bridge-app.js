@@ -69,6 +69,7 @@ export function createBridgeApp({
         allowedGroupChatIds: config.allowedGroupChatIds,
         groupSenderOpenIds: config.groupSenderOpenIds,
         messageDedupStore,
+        unsupportedMessageClient: feishuMessageClient,
       });
       return eventHandler;
     },

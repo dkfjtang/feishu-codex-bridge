@@ -65,6 +65,89 @@ test("handleMessageReceive skips unsupported events", async () => {
   assert.match(result.reason, /Group messages require bot open_id|Group message does not mention bot/);
 });
 
+test("handleMessageReceive replies unsupported notice for private non-text messages", async () => {
+  const notices = [];
+  const marked = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for file message");
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async (message) => {
+        notices.push(message);
+        return { messageId: "om_notice" };
+      },
+    },
+    messageDedupStore: {
+      has: async () => false,
+      mark: async (messageId) => marked.push(messageId),
+    },
+  });
+
+  const result = await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_file",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "file",
+        content: JSON.stringify({ file_key: "file_secret", file_name: "secret.txt" }),
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "handled", reason: "Unsupported Feishu message type notified" });
+  assert.deepEqual(notices, [
+    {
+      chatId: "oc_123",
+      text: "暂不支持文件、图片、文档或语音消息。请先发送文本任务；文件下载与回传能力将在后续版本开放。",
+    },
+  ]);
+  assert.deepEqual(marked, ["om_file"]);
+  assert.equal(JSON.stringify(notices).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(notices).includes("file_secret"), false);
+});
+
+test("handleMessageReceive deduplicates unsupported non-text notices", async () => {
+  const notices = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not be called");
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async (message) => {
+        notices.push(message);
+        return { messageId: "om_notice" };
+      },
+    },
+    messageDedupStore: {
+      has: async (messageId) => messageId === "om_seen",
+      mark: async () => {},
+    },
+  });
+
+  const result = await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_seen",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "image",
+        content: "{}",
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "skipped", reason: "Duplicate Feishu message" });
+  assert.deepEqual(notices, []);
+});
+
 test("handleMessageReceive handles group text when bot is mentioned", async () => {
   const calls = [];
   const handler = new FeishuEventHandler({

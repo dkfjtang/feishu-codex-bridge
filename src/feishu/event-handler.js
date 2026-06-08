@@ -16,6 +16,7 @@ export class FeishuEventHandler {
   #now;
   #maxEventAgeMs;
   #messageDedupStore;
+  #unsupportedMessageClient;
   #seenMessageIds = new Set();
   #chatQueues = new Map();
 
@@ -28,6 +29,7 @@ export class FeishuEventHandler {
     now = () => Date.now(),
     maxEventAgeMs = 5 * 60 * 1000,
     messageDedupStore = null,
+    unsupportedMessageClient = null,
   }) {
     this.#runtime = runtime;
     this.#expectedAppId = expectedAppId;
@@ -37,6 +39,7 @@ export class FeishuEventHandler {
     this.#now = now;
     this.#maxEventAgeMs = maxEventAgeMs;
     this.#messageDedupStore = messageDedupStore;
+    this.#unsupportedMessageClient = unsupportedMessageClient;
   }
 
   async handleMessageReceive(payload) {
@@ -50,6 +53,9 @@ export class FeishuEventHandler {
       message = parseMessageReceiveEvent(payload, { botOpenId: this.#botOpenId });
     } catch (error) {
       if (error instanceof UnsupportedFeishuEventError) {
+        if (error.message === "Only text messages are supported") {
+          return this.#handleUnsupportedMessageType(payload);
+        }
         return { status: "skipped", reason: error.message };
       }
       throw error;
@@ -139,6 +145,31 @@ export class FeishuEventHandler {
 
   async #markSeenMessage(messageId) {
     await this.#messageDedupStore?.mark(messageId);
+  }
+
+  async #handleUnsupportedMessageType(payload) {
+    const message = payload?.event?.message;
+    const messageId = message?.message_id;
+    if (!messageId || !message?.chat_id || message?.chat_type !== "p2p") {
+      return { status: "skipped", reason: "Only text messages are supported" };
+    }
+    if (this.#seenMessageIds.has(messageId) || (await this.#hasSeenMessage(messageId))) {
+      return { status: "skipped", reason: "Duplicate Feishu message" };
+    }
+
+    this.#seenMessageIds.add(messageId);
+    await this.#markSeenMessage(messageId);
+
+    if (!this.#unsupportedMessageClient?.sendTextMessage) {
+      return { status: "skipped", reason: "Only text messages are supported" };
+    }
+
+    await this.#unsupportedMessageClient.sendTextMessage({
+      chatId: message.chat_id,
+      text: "暂不支持文件、图片、文档或语音消息。请先发送文本任务；文件下载与回传能力将在后续版本开放。",
+    });
+
+    return { status: "handled", reason: "Unsupported Feishu message type notified" };
   }
 
   #precheck(payload) {

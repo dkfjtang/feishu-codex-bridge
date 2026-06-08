@@ -96,6 +96,7 @@ Done 标准：
 - 同一 `chat_id` 的消息串行进入 Codex turn。
 - Thread 映射按会话维度隔离：私聊使用 `open_id + cwd`，群聊使用 `chat_id + cwd`。
 - Codex delta 运行中更新经过节流，不逐 token patch 飞书卡片。
+- 私聊文件、图片、文档或语音消息会收到固定暂不支持提示；Bridge 不下载附件、不读取文件名或 file_key，并按 `message_id` 去重。
 
 ## M4 稳定性和可观测性
 
@@ -147,6 +148,7 @@ Done 标准：
 - `FCA_GROUP_CONFIG_PATH` 已提供可选群级 JSON 配置文件，可集中维护群 `chat_id` allowlist、群内 sender 收紧策略和群级 developer instructions。
 - 普通群聊文本仍跳过；进入 `BridgeRuntime` 后仍使用飞书发送者 `open_id` 白名单作为权限依据。
 - 群聊任务继续按 `chat_id` 串行，避免同一群内多个 Codex turn 并发打乱卡片状态。
+- 私聊非文本消息已具备安全提示前置闭环，为后续文件下载和回传能力保留清晰边界。
 
 候选能力：
 

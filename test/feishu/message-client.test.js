@@ -65,6 +65,45 @@ test("sendAction updates an existing card message", async () => {
   assert.deepEqual(result, {});
 });
 
+test("sendTextMessage sends a plain text chat message", async () => {
+  const calls = [];
+  const client = new FeishuMessageClient({
+    transport: {
+      sendMessage: async (payload) => {
+        calls.push({ method: "sendMessage", payload });
+        return { data: { message_id: "om_text" } };
+      },
+    },
+  });
+
+  const result = await client.sendTextMessage({
+    chatId: "oc_123",
+    text: "暂不支持文件消息。",
+  });
+
+  assert.deepEqual(calls, [
+    {
+      method: "sendMessage",
+      payload: {
+        receiveIdType: "chat_id",
+        receiveId: "oc_123",
+        msgType: "text",
+        content: JSON.stringify({ text: "暂不支持文件消息。" }),
+      },
+    },
+  ]);
+  assert.deepEqual(result, { messageId: "om_text" });
+});
+
+test("sendTextMessage requires a chat id", async () => {
+  const client = new FeishuMessageClient({ transport: {} });
+
+  await assert.rejects(
+    () => client.sendTextMessage({ text: "hello" }),
+    /chatId is required/,
+  );
+});
+
 test("sendAction rejects unsupported action type", async () => {
   const client = new FeishuMessageClient({
     transport: {},

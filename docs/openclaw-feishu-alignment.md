@@ -73,7 +73,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | P1 | CardKit 优先、IM patch fallback | MVP 先用 IM card patch，后续增加 CardKit 2.0 |
 | P1 | 群聊策略 | 已完成群聊 @ 最小入口、可选群 `chat_id` allowlist、群内 sender 收紧策略和群级 developer instructions |
 | P1 | 卡片交互审批 | 已完成 Codex approval server request 识别、等待审批卡片、详情展开、飞书按钮回调和超时默认安全拒绝 |
-| P2 | 文件/图片资源 | 后续作为 Codex 输入附件和输出附件能力规划 |
+| P2 | 文件/图片资源 | 私聊非文本消息已返回固定暂不支持提示且不下载附件；后续作为 Codex 输入附件和输出附件能力规划 |
 | P2 | 文档/多维表/日历/任务工具 | 不属于 fca MVP；只在 Codex 能力需要飞书工具时评估 |
 
 ## 源码对齐待办
