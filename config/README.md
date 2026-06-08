@@ -48,4 +48,4 @@ npm run check-config
 
 ## 日志输出
 
-`npm run dev` 会将结构化任务日志写入 stderr，便于本机终端、容器或进程管理器采集。任务日志包含 `messageId`、`openId`、`chatId`、`threadId`、`turnId`、`status` 和 `errorSummary`，不包含 App Secret、Codex 凭据或完整环境变量。
+`npm run dev` 会将结构化任务日志写入 stderr，便于本机终端、容器或进程管理器采集。任务日志包含 `messageId`、`openId`、`chatId`、`threadId`、`turnId`、`status`、`elapsedMs`、`errorSummary` 和 `errorType`，不包含 App Secret、Codex 凭据或完整环境变量。

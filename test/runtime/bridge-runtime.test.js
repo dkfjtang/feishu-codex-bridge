@@ -424,8 +424,11 @@ test("handleTextMessage writes traceable structured task logs", async () => {
     threadId: "thr_new",
     turnId: "turn_new",
     status: "completed",
+    elapsedMs: logEntries.at(-1).elapsedMs,
     errorSummary: null,
+    errorType: null,
   });
+  assert.equal(typeof logEntries.at(-1).elapsedMs, "number");
 });
 
 test("handleTextMessage logs failed terminal state with error summary", async () => {
@@ -469,8 +472,11 @@ test("handleTextMessage logs failed terminal state with error summary", async ()
     threadId: "thr_new",
     turnId: "turn_new",
     status: "failed",
+    elapsedMs: logEntries.at(-1).elapsedMs,
     errorSummary: "denied",
+    errorType: "failed",
   });
+  assert.equal(typeof logEntries.at(-1).elapsedMs, "number");
 });
 
 test("handleTextMessage logs thrown turn errors with trace fields", async () => {
@@ -508,9 +514,12 @@ test("handleTextMessage logs thrown turn errors with trace fields", async () => 
     threadId: "thr_new",
     turnId: null,
     status: "queued",
+    elapsedMs: logEntries.at(-1).elapsedMs,
     errorSummary: "app-server unavailable",
+    errorType: null,
     errorName: "Error",
   });
+  assert.equal(typeof logEntries.at(-1).elapsedMs, "number");
 });
 
 test("handleTextMessage logs Feishu API error code when card sync fails", async () => {
@@ -552,11 +561,14 @@ test("handleTextMessage logs Feishu API error code when card sync fails", async 
     threadId: null,
     turnId: null,
     status: "queued",
+    elapsedMs: logEntries.at(-1).elapsedMs,
     errorSummary: "Feishu update failed (99991663): frequency limited",
+    errorType: null,
     errorName: "FeishuApiError",
     errorCode: 99991663,
     errorActionType: "update",
   });
+  assert.equal(typeof logEntries.at(-1).elapsedMs, "number");
 });
 
 function allowDefaultPolicy() {

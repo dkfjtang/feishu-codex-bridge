@@ -10,6 +10,7 @@ test("new runtime task starts queued with Feishu context", () => {
     feishuOpenId: "ou_123",
     feishuChatId: "chat_123",
     cwd: "F:\\development\\f-codex",
+    now: () => 1_000,
   });
 
   assert.deepEqual(task.snapshot(), {
@@ -22,9 +23,13 @@ test("new runtime task starts queued with Feishu context", () => {
     turnId: null,
     cwd: "F:\\development\\f-codex",
     status: "queued",
+    startedAt: 1000,
+    completedAt: null,
+    elapsedMs: 0,
     summaryText: "Codex 正在处理...",
     finalText: "",
     errorSummary: null,
+    errorType: null,
   });
 });
 
@@ -58,14 +63,19 @@ test("agent message deltas update summary and final output", () => {
 });
 
 test("turn completion marks task completed", () => {
-  const task = new RuntimeTask({ taskId: "task_123" });
+  let now = 1_000;
+  const task = new RuntimeTask({ taskId: "task_123", now: () => now });
+  now = 2_500;
 
   task.handleCodexEvent({
     method: "turn/completed",
     params: { status: "success" },
   });
 
-  assert.equal(task.snapshot().status, "completed");
+  const snapshot = task.snapshot();
+  assert.equal(snapshot.status, "completed");
+  assert.equal(snapshot.completedAt, 2500);
+  assert.equal(snapshot.elapsedMs, 1500);
 });
 
 test("turn failure records a readable error summary", () => {
@@ -73,20 +83,26 @@ test("turn failure records a readable error summary", () => {
 
   task.handleCodexEvent({
     method: "turn/completed",
-    params: { status: "failed", error: { message: "Tool approval denied" } },
+    params: { status: "failed", error: { message: "Tool approval denied", type: "approval_denied" } },
   });
 
   const snapshot = task.snapshot();
   assert.equal(snapshot.status, "failed");
   assert.equal(snapshot.errorSummary, "Tool approval denied");
+  assert.equal(snapshot.errorType, "approval_denied");
 });
 
 test("cancel marks task cancelled with readable reason", () => {
-  const task = new RuntimeTask({ taskId: "task_123" });
+  let now = 1_000;
+  const task = new RuntimeTask({ taskId: "task_123", now: () => now });
+  now = 1_250;
 
   task.cancel("用户已停止任务");
 
   const snapshot = task.snapshot();
   assert.equal(snapshot.status, "cancelled");
   assert.equal(snapshot.errorSummary, "用户已停止任务");
+  assert.equal(snapshot.errorType, "cancelled");
+  assert.equal(snapshot.completedAt, 1250);
+  assert.equal(snapshot.elapsedMs, 250);
 });

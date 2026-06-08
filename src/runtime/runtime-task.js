@@ -9,8 +9,12 @@ export class RuntimeTask {
   #threadId = null;
   #turnId = null;
   #cwd;
+  #now;
+  #startedAt;
+  #completedAt = null;
   #status = "queued";
   #errorSummary = null;
+  #errorType = null;
   #output;
 
   constructor({
@@ -19,6 +23,7 @@ export class RuntimeTask {
     feishuOpenId = null,
     feishuChatId = null,
     cwd = null,
+    now = () => Date.now(),
     summaryLimit,
   }) {
     this.#taskId = taskId;
@@ -26,6 +31,8 @@ export class RuntimeTask {
     this.#feishuOpenId = feishuOpenId;
     this.#feishuChatId = feishuChatId;
     this.#cwd = cwd;
+    this.#now = now;
+    this.#startedAt = this.#now();
     this.#output = new TurnOutputBuffer({ summaryLimit });
   }
 
@@ -40,6 +47,8 @@ export class RuntimeTask {
   cancel(reason = "任务已取消") {
     this.#status = "cancelled";
     this.#errorSummary = reason;
+    this.#errorType = "cancelled";
+    this.#completedAt = this.#now();
   }
 
   handleCodexEvent(event) {
@@ -76,19 +85,29 @@ export class RuntimeTask {
       turnId: this.#turnId,
       cwd: this.#cwd,
       status: this.#status,
+      startedAt: this.#startedAt,
+      completedAt: this.#completedAt,
+      elapsedMs: this.#elapsedMs(),
       summaryText: this.#output.summaryText(),
       finalText: this.#output.finalText(),
       errorSummary: this.#errorSummary,
+      errorType: this.#errorType,
     };
   }
 
   #handleTurnCompleted(params = {}) {
+    this.#completedAt = this.#now();
     if (params.status === "failed" || params.error) {
       this.#status = "failed";
       this.#errorSummary = params.error?.message ?? "Codex turn failed";
+      this.#errorType = params.error?.type ?? params.status ?? "failed";
       return;
     }
 
     this.#status = "completed";
+  }
+
+  #elapsedMs() {
+    return (this.#completedAt ?? this.#now()) - this.#startedAt;
   }
 }

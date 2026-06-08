@@ -64,6 +64,8 @@ function footerText(snapshot) {
     `状态: ${snapshot.status}`,
     snapshot.threadId ? `thread: ${shortId(snapshot.threadId)}` : null,
     snapshot.turnId ? `turn: ${shortId(snapshot.turnId)}` : null,
+    typeof snapshot.elapsedMs === "number" ? `耗时: ${formatElapsed(snapshot.elapsedMs)}` : null,
+    snapshot.errorType ? `错误: ${snapshot.errorType}` : null,
     snapshot.cwd ? `cwd: ${snapshot.cwd}` : null,
   ]
     .filter(Boolean)
@@ -72,6 +74,18 @@ function footerText(snapshot) {
 
 function shortId(value) {
   return value.slice(0, 8);
+}
+
+function formatElapsed(elapsedMs) {
+  const seconds = Math.max(elapsedMs, 0) / 1000;
+  if (seconds < 60) {
+    return `${Number(seconds.toFixed(1))}s`;
+  }
+
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainingSeconds = wholeSeconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
 }
 
 function truncate(value, limit) {

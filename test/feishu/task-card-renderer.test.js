@@ -32,13 +32,16 @@ test("renderTaskCard renders running status with thread and turn footer", () => 
     finalText: "",
     threadId: "thr_123456789",
     turnId: "turn_123456789",
+    elapsedMs: 3500,
     errorSummary: null,
+    errorType: null,
   });
 
   assert.equal(card.header.title.content, "Codex 执行中");
   assert.equal(card.header.template, "wathet");
   assert.match(card.elements.at(-1).elements[0].content, /thread: thr_1234/);
   assert.match(card.elements.at(-1).elements[0].content, /turn: turn_123/);
+  assert.match(card.elements.at(-1).elements[0].content, /耗时: 3\.5s/);
 });
 
 test("renderTaskCard renders completed status with final text", () => {
@@ -67,12 +70,16 @@ test("renderTaskCard renders failed status with readable error", () => {
     finalText: "",
     threadId: "thr_123",
     turnId: "turn_123",
+    elapsedMs: 62_000,
     errorSummary: "Codex turn failed",
+    errorType: "app_server_error",
   });
 
   assert.equal(card.header.title.content, "执行失败");
   assert.equal(card.header.template, "red");
   assert.equal(card.elements[0].text.content, "Codex turn failed");
+  assert.match(card.elements.at(-1).elements[0].content, /耗时: 1m 2s/);
+  assert.match(card.elements.at(-1).elements[0].content, /错误: app_server_error/);
 });
 
 test("renderTaskCard truncates overly long card body", () => {

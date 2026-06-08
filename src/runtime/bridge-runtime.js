@@ -235,7 +235,9 @@ export class BridgeRuntime {
       threadId: snapshot.threadId,
       turnId: snapshot.turnId,
       status: snapshot.status,
+      elapsedMs: snapshot.elapsedMs,
       errorSummary: snapshot.errorSummary,
+      errorType: snapshot.errorType,
       ...extraFields,
     };
 
