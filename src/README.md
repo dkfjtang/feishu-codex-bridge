@@ -21,5 +21,6 @@
 - `config/app-config.js`：从环境变量解析 fca 本地配置，不读取真实凭据文件。
 - `feishu/task-card-renderer.js`：将 fca task snapshot 渲染为飞书任务卡片 payload。
 - `feishu/task-card-actions.js`：构造发送新卡片或更新已有卡片的 SDK 无关动作。
+- `feishu/task-card-controller.js`：根据 task 状态同步发送或更新飞书任务卡片。
 - `policy/access-policy.js`：飞书 `open_id` 和本地工作目录白名单校验。
 - `runtime/runtime-task.js`：Codex notification 到 fca task 状态的最小转换。
