@@ -86,3 +86,42 @@ test("createBridgeApp exposes config for diagnostics", () => {
   assert.equal(app.config.defaultWorkdir, "F:\\development\\f-codex");
   assert.deepEqual(app.config.allowedOpenIds, ["ou_123"]);
 });
+
+test("createBridgeApp passes bot open id to event handler self-echo guard", async () => {
+  const app = createBridgeApp({
+    env: {
+      FEISHU_APP_ID: "cli_123",
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    botOpenId: "ou_bot",
+    codexAppServerFactory: () => ({
+      start: async () => ({
+        onEvent: () => () => {},
+      }),
+    }),
+    feishuTransport: {},
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+  });
+
+  await app.start();
+  const result = await app.eventHandler.handleMessageReceive({
+    app_id: "cli_123",
+    event: {
+      sender: { sender_id: { open_id: "ou_bot" } },
+      message: {
+        message_id: "om_123",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "text",
+        content: JSON.stringify({ text: "hello" }),
+      },
+    },
+  });
+
+  assert.deepEqual(result, { status: "skipped", reason: "Self-echo Feishu message" });
+});

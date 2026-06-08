@@ -25,6 +25,7 @@
 - `feishu/event-handler.js` 已具备基础 OpenClaw 对齐护栏：app_id 校验、自回声过滤、message_id 去重和过期事件丢弃。
 - `feishu/message-client.js`：将 SDK 无关的飞书消息 action 转换为 transport 调用。
 - `feishu/message-event-parser.js`：解析 `im.message.receive_v1` 私聊文本事件。
+- `feishu/sdk-transport.js`：使用飞书 Node SDK 发送/更新卡片，并探测 bot open_id。
 - `feishu/task-card-renderer.js`：将 fca task snapshot 渲染为飞书任务卡片 payload。
 - `feishu/task-card-actions.js`：构造发送新卡片或更新已有卡片的 SDK 无关动作。
 - `feishu/task-card-controller.js`：根据 task 状态同步发送或更新飞书任务卡片。

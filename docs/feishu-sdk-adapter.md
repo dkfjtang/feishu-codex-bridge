@@ -19,6 +19,8 @@ TaskCardController
 - `send` action 转换为发送 interactive 消息。
 - `update` action 转换为更新已发送消息卡片。
 - transport 通过依赖注入提供，便于测试和后续替换 SDK。
+- `FeishuSdkTransport` 使用 `@larksuiteoapi/node-sdk` 调用飞书消息 API。
+- `FeishuSdkTransport.probeBot()` 通过 bot ping API 探测 bot open_id，用于自回声过滤。
 
 ## transport 接口
 
@@ -98,8 +100,7 @@ transport payload：
 
 ## 后续接入点
 
-- 使用飞书 Node SDK 实现真实 transport。
-- 处理 access token 刷新。
+- 使用飞书 Node SDK 实现长连接事件监听。
 - 统一飞书 API 错误摘要。
 - 增加消息长度和卡片 payload 尺寸保护。
 - 增加交互卡片回调处理。

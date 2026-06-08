@@ -9,6 +9,7 @@ import { loadConfig } from "../config/app-config.js";
 
 export function createBridgeApp({
   env = process.env,
+  botOpenId = null,
   codexAppServerFactory = (options) => new CodexAppServerProcess(options),
   feishuTransport,
   threadStoreFactory = (config) =>
@@ -52,6 +53,7 @@ export function createBridgeApp({
       eventHandler = new FeishuEventHandler({
         runtime,
         expectedAppId: config.feishuAppId,
+        botOpenId,
       });
       return eventHandler;
     },
