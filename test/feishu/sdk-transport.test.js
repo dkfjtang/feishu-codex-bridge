@@ -281,6 +281,67 @@ test("startMessageListener logs websocket start failures", async () => {
   });
 });
 
+test("startMessageListener closes WS client when start fails", async () => {
+  const calls = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: () => ({
+      start: async () => {
+        calls.push("start");
+        throw new Error("ws unavailable");
+      },
+      close: async (params = {}) => {
+        calls.push({ type: "close", params });
+      },
+    }),
+  });
+
+  await assert.rejects(
+    () =>
+      transport.startMessageListener({
+        onMessageReceive: async () => {},
+      }),
+    /ws unavailable/,
+  );
+  assert.deepEqual(calls, ["start", { type: "close", params: {} }]);
+
+  await transport.stop();
+
+  assert.deepEqual(calls, ["start", { type: "close", params: {} }]);
+});
+
+test("startMessageListener preserves start failure when cleanup close fails", async () => {
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    createClient: () => ({}),
+    createEventDispatcher: () => ({
+      register: () => {},
+    }),
+    createWsClient: () => ({
+      start: async () => {
+        throw new Error("ws unavailable");
+      },
+      close: async () => {
+        throw new Error("close failed");
+      },
+    }),
+  });
+
+  await assert.rejects(
+    () =>
+      transport.startMessageListener({
+        onMessageReceive: async () => {},
+      }),
+    /ws unavailable/,
+  );
+});
+
 test("stop closes started WS client", async () => {
   const calls = [];
   const transport = new FeishuSdkTransport({

@@ -142,6 +142,16 @@ export class FeishuSdkTransport {
       return result;
     } catch (error) {
       this.#log("error", "feishu.ws_start_failed", errorLogFields(error));
+      if (this.#wsClient === wsClient) {
+        this.#wsClient = null;
+      }
+      if (typeof wsClient.close === "function") {
+        try {
+          await wsClient.close({});
+        } catch (closeError) {
+          this.#log("error", "feishu.ws_cleanup_failed", errorLogFields(closeError));
+        }
+      }
       throw error;
     }
   }
