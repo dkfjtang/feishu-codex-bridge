@@ -7,7 +7,10 @@ import {
   parseCardActionEvent,
   UnsupportedFeishuCardActionError,
 } from "./card-action-parser.js";
-import { decideAttachmentInput } from "./attachment-policy.js";
+import {
+  buildAttachmentApprovalSummary,
+  decideAttachmentInput,
+} from "./attachment-policy.js";
 
 export class FeishuEventHandler {
   #runtime;
@@ -180,6 +183,8 @@ export class FeishuEventHandler {
     const decision = decideAttachmentInput(envelope, {
       enabled: this.#feishuFileInputsEnabled,
     });
+    const approvalSummary =
+      decision.action === "eligible" ? buildAttachmentApprovalSummary(envelope, decision) : null;
     const messageId = envelope.messageId;
     if (decision.action === "skip") {
       return {
@@ -208,11 +213,15 @@ export class FeishuEventHandler {
       text: attachmentDecisionNotice(decision),
     });
 
-    return {
+    const result = {
       status: "handled",
       reason: decision.reason,
       attachmentKind: decision.attachmentKind,
     };
+    if (approvalSummary) {
+      result.attachmentApproval = approvalSummary;
+    }
+    return result;
   }
 
   async #handleUnsupportedTextCommand(chatId, command) {
@@ -329,6 +338,11 @@ export class FeishuEventHandler {
     }
     if (result?.attachmentKind) {
       fields.attachmentKind = result.attachmentKind;
+    }
+    if (result?.attachmentApproval) {
+      fields.attachmentApprovalType = result.attachmentApproval.type;
+      fields.attachmentApprovalRisk = result.attachmentApproval.risk;
+      fields.attachmentApprovalRiskReasons = result.attachmentApproval.riskReasons;
     }
     write(event, fields);
   }

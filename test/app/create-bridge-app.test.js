@@ -204,6 +204,21 @@ test("createBridgeApp passes file input feature flag to event handler", async ()
     status: "handled",
     reason: "Feishu attachment input is eligible",
     attachmentKind: "file",
+    attachmentApproval: {
+      type: "feishu_attachment_input",
+      summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+      risk: "中",
+      riskReasons: ["飞书附件读取"],
+      attachmentKind: "file",
+      details: [
+        "风险: 中",
+        "风险因素: 飞书附件读取",
+        "附件类型: 文件",
+        "消息: om_file_",
+        "会话类型: 私聊",
+        "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+      ],
+    },
   });
   assert.equal(messages.length, 1);
   assert.equal(JSON.stringify(messages).includes("file_secret"), false);

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { decideAttachmentInput } from "../../src/feishu/attachment-policy.js";
+import {
+  buildAttachmentApprovalSummary,
+  decideAttachmentInput,
+} from "../../src/feishu/attachment-policy.js";
 
 test("decideAttachmentInput notifies supported private attachments when disabled", () => {
   assert.deepEqual(
@@ -81,4 +84,61 @@ test("decideAttachmentInput skips envelopes without message or chat ids", () => 
     action: "skip",
     reason: "Only text messages are supported",
   });
+});
+
+test("buildAttachmentApprovalSummary returns sanitized approval details", () => {
+  const envelope = {
+    messageId: "om_file_123456789",
+    chatId: "oc_123",
+    chatType: "p2p",
+    attachmentKind: "file",
+    fileKey: "file_secret",
+    fileName: "secret.txt",
+  };
+  const decision = decideAttachmentInput(envelope, { enabled: true });
+
+  const summary = buildAttachmentApprovalSummary(envelope, decision);
+
+  assert.deepEqual(summary, {
+    type: "feishu_attachment_input",
+    summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+    risk: "中",
+    riskReasons: ["飞书附件读取"],
+    attachmentKind: "file",
+    details: [
+      "风险: 中",
+      "风险因素: 飞书附件读取",
+      "附件类型: 文件",
+      "消息: om_file_",
+      "会话类型: 私聊",
+      "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+    ],
+  });
+  assert.equal(JSON.stringify(summary).includes("file_secret"), false);
+  assert.equal(JSON.stringify(summary).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(summary).includes("om_file_123456789"), false);
+});
+
+test("buildAttachmentApprovalSummary handles unknown attachment kinds", () => {
+  assert.deepEqual(
+    buildAttachmentApprovalSummary(
+      { messageId: "om_unknown", chatType: "group", attachmentKind: "unsupported" },
+      { attachmentKind: "unsupported" },
+    ),
+    {
+      type: "feishu_attachment_input",
+      summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+      risk: "中",
+      riskReasons: ["飞书附件读取"],
+      attachmentKind: "unsupported",
+      details: [
+        "风险: 中",
+        "风险因素: 飞书附件读取",
+        "附件类型: 未知",
+        "消息: om_unkno",
+        "会话类型: 群聊",
+        "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+      ],
+    },
+  );
 });

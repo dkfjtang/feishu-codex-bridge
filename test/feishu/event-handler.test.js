@@ -267,6 +267,21 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
     status: "handled",
     reason: "Feishu attachment input is eligible",
     attachmentKind: "file",
+    attachmentApproval: {
+      type: "feishu_attachment_input",
+      summary: "Codex 请求读取飞书附件，需要先完成确认和审计。",
+      risk: "中",
+      riskReasons: ["飞书附件读取"],
+      attachmentKind: "file",
+      details: [
+        "风险: 中",
+        "风险因素: 飞书附件读取",
+        "附件类型: 文件",
+        "消息: om_enabl",
+        "会话类型: 私聊",
+        "仅展示脱敏摘要，未展示文件名、附件 key 或附件内容。",
+      ],
+    },
   });
   assert.deepEqual(notices, [
     {
@@ -276,6 +291,56 @@ test("handleMessageReceive keeps enabled attachments behind unfinished download 
   ]);
   assert.equal(JSON.stringify(notices).includes("file_secret"), false);
   assert.equal(JSON.stringify(notices).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(result).includes("file_secret"), false);
+  assert.equal(JSON.stringify(result).includes("secret.txt"), false);
+});
+
+test("handleMessageReceive logs enabled attachment approval summary without raw details", async () => {
+  const logEntries = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for attachment approval");
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async () => ({ messageId: "om_notice" }),
+    },
+    feishuFileInputsEnabled: true,
+    logger: fakeLogger(logEntries),
+    now: steppingClock(4000, 20),
+  });
+
+  await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_enabled_image",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "image",
+        content: JSON.stringify({ image_key: "image_secret", file_name: "secret.png" }),
+      },
+    },
+  });
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "info",
+    event: "feishu.message_handled",
+    messageId: "om_enabled_image",
+    chatId: "oc_123",
+    chatType: "p2p",
+    resultStatus: "handled",
+    durationMs: 20,
+    reason: "Feishu attachment input is eligible",
+    attachmentKind: "image",
+    attachmentApprovalType: "feishu_attachment_input",
+    attachmentApprovalRisk: "中",
+    attachmentApprovalRiskReasons: ["飞书附件读取"],
+  });
+  assert.equal(JSON.stringify(logEntries).includes("image_secret"), false);
+  assert.equal(JSON.stringify(logEntries).includes("secret.png"), false);
+  assert.equal(JSON.stringify(logEntries).includes("仅展示脱敏摘要"), false);
 });
 
 test("handleMessageReceive deduplicates unsupported non-text notices", async () => {
