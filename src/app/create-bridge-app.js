@@ -51,6 +51,24 @@ export function createBridgeApp({
     get eventHandler() {
       return eventHandler;
     },
+    getDiagnostics() {
+      return {
+        appServer: {
+          active: Boolean(session),
+        },
+        runtime: {
+          active: Boolean(runtime),
+        },
+        eventHandler: {
+          active: Boolean(eventHandler),
+        },
+        feishu: {
+          messageListener: sanitizeMessageListenerStatus(
+            feishuTransport?.getMessageListenerStatus?.(),
+          ),
+        },
+      };
+    },
     async start() {
       session = await appServer.start();
       runtime = new BridgeRuntime({
@@ -94,4 +112,22 @@ export function createThreadStore(config) {
   }
 
   return new FileThreadStore({ filePath: config.threadStorePath });
+}
+
+function sanitizeMessageListenerStatus(status) {
+  if (!status || typeof status !== "object") {
+    return null;
+  }
+
+  return {
+    active: Boolean(status.active),
+    autoReconnect:
+      typeof status.autoReconnect === "boolean" ? status.autoReconnect : null,
+    state: typeof status.state === "string" ? status.state : "unknown",
+    lastConnectTime: Number.isFinite(status.lastConnectTime) ? status.lastConnectTime : null,
+    nextConnectTime: Number.isFinite(status.nextConnectTime) ? status.nextConnectTime : null,
+    reconnectAttempts: Number.isFinite(status.reconnectAttempts)
+      ? status.reconnectAttempts
+      : null,
+  };
 }

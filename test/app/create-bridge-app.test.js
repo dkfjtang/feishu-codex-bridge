@@ -159,6 +159,87 @@ test("createBridgeApp exposes config for diagnostics", () => {
   assert.deepEqual(app.config.allowedOpenIds, ["ou_123"]);
 });
 
+test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
+  const wsStatus = {
+    active: true,
+    autoReconnect: true,
+    state: "connected",
+    lastConnectTime: 1000,
+    nextConnectTime: null,
+    reconnectAttempts: 0,
+    appSecret: "should_not_escape",
+  };
+  const sanitizedWsStatus = {
+    active: true,
+    autoReconnect: true,
+    state: "connected",
+    lastConnectTime: 1000,
+    nextConnectTime: null,
+    reconnectAttempts: 0,
+  };
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    codexAppServerFactory: () => ({
+      start: async () => ({ onEvent: () => () => {} }),
+      stop: async () => {},
+    }),
+    feishuTransport: {
+      getMessageListenerStatus: () => wsStatus,
+    },
+    threadStoreFactory: () => ({
+      getThread: async () => null,
+      saveThread: async () => {},
+    }),
+    messageDedupStoreFactory: emptyMessageDedupStore,
+  });
+
+  assert.deepEqual(app.getDiagnostics(), {
+    appServer: { active: false },
+    runtime: { active: false },
+    eventHandler: { active: false },
+    feishu: { messageListener: sanitizedWsStatus },
+  });
+
+  await app.start();
+
+  assert.deepEqual(app.getDiagnostics(), {
+    appServer: { active: true },
+    runtime: { active: true },
+    eventHandler: { active: true },
+    feishu: { messageListener: sanitizedWsStatus },
+  });
+  assert.equal(JSON.stringify(app.getDiagnostics()).includes("should_not_escape"), false);
+
+  await app.stop();
+
+  assert.deepEqual(app.getDiagnostics(), {
+    appServer: { active: false },
+    runtime: { active: false },
+    eventHandler: { active: false },
+    feishu: { messageListener: sanitizedWsStatus },
+  });
+});
+
+test("createBridgeApp diagnostics tolerate transports without WS status", () => {
+  const app = createBridgeApp({
+    env: {
+      FCA_ALLOWED_OPEN_IDS: "ou_123",
+      FCA_ALLOWED_WORKDIRS: "F:\\development\\f-codex",
+      FCA_DEFAULT_WORKDIR: "F:\\development\\f-codex",
+    },
+    codexAppServerFactory: () => ({ start: async () => ({}) }),
+    feishuTransport: {},
+  });
+
+  assert.deepEqual(app.getDiagnostics().feishu, {
+    messageListener: null,
+  });
+});
+
 test("createBridgeApp stop terminates the app-server process", async () => {
   const calls = [];
   const app = createBridgeApp({

@@ -13,7 +13,7 @@
 
 当前已落地：
 
-- `app/create-bridge-app.js`：组装 config、policy、thread store、Codex app-server、飞书消息客户端和事件 handler。
+- `app/create-bridge-app.js`：组装 config、policy、thread store、Codex app-server、飞书消息客户端和事件 handler，并提供脱敏 diagnostics 快照。
 - `cli/dev.js`：本地 dev 启动入口，完成凭据检查、配置自检、bot 身份探测、app 装配和飞书长连接启动。
 - `codex/json-rpc-client.js`：JSON-RPC 请求、响应和 notification 分发。
 - `codex/json-line-channel.js`：app-server stdio JSONL 读写和分片重组。
@@ -30,7 +30,7 @@
 - `feishu/message-client.js`：将 SDK 无关的飞书消息 action 转换为 transport 调用。
 - `feishu/message-event-parser.js`：解析 `im.message.receive_v1` 私聊文本事件，以及明确 @ Bot 的群聊文本事件。
 - `feishu/card-action-parser.js`：解析 `card.action.trigger` 中的审批按钮回调。
-- `feishu/sdk-transport.js`：使用飞书 Node SDK 发送/更新卡片、探测 bot open_id，启动长连接消息监听，并记录 WebSocket 生命周期和入站事件分发日志。
+- `feishu/sdk-transport.js`：使用飞书 Node SDK 发送/更新卡片、探测 bot open_id，启动长连接消息监听，记录 WebSocket 生命周期和入站事件分发日志，并提供长连接状态快照。
 - `feishu/task-card-renderer.js`：将 fca task snapshot 渲染为飞书任务卡片 payload。
 - `feishu/task-card-actions.js`：构造发送新卡片或更新已有卡片的 SDK 无关动作。
 - `feishu/task-card-controller.js`：根据 task 状态同步发送或更新飞书任务卡片。

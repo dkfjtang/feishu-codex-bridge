@@ -115,6 +115,15 @@ TaskCardController
 
 该方法只读取 SDK `getConnectionStatus()` 的生命周期字段；未启动时返回 `active=false` / `state=idle`，旧 SDK 不支持状态接口时返回 `state=unknown`。返回值不包含 `appSecret`、verification token、encrypt key、事件 payload 或 SDK client 实例。
 
+应用装配层会通过 `createBridgeApp().getDiagnostics()` 二次裁剪并聚合状态：
+
+- `appServer.active`
+- `runtime.active`
+- `eventHandler.active`
+- `feishu.messageListener`
+
+`feishu.messageListener` 只保留上述长连接快照字段，用于后续 `/status` 或运维探针复用。
+
 `runDev` 会注册 `SIGINT` / `SIGTERM` 退出信号。收到信号后，Bridge 先停止 Codex app-server，再 best-effort 调用 transport `stop()`；SDK transport 会通过 `WSClient.close({})` 关闭已启动的长连接，并记录关闭成功或失败。停机失败会记录 `bridge.shutdown_failed`、首个错误摘要和 `failedResources`，但不会输出额外敏感信息。
 
 ## 卡片更新重试
