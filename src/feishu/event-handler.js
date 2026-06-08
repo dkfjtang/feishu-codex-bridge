@@ -113,6 +113,10 @@ export class FeishuEventHandler {
       return this.#handleUnsupportedCwdCommand(message.chatId);
     }
 
+    if (isClearText(message.text)) {
+      return this.#handleUnsupportedClearCommand(message.chatId);
+    }
+
     return this.#enqueue(message.chatId, async () => {
       const task = await this.#runtime.handleTextMessage(message);
       return {
@@ -201,6 +205,19 @@ export class FeishuEventHandler {
     });
 
     return { status: "handled", reason: "Cwd command is not supported" };
+  }
+
+  async #handleUnsupportedClearCommand(chatId) {
+    if (!this.#unsupportedMessageClient?.sendTextMessage) {
+      return { status: "skipped", reason: "Clear command is not supported" };
+    }
+
+    await this.#unsupportedMessageClient.sendTextMessage({
+      chatId,
+      text: "暂不支持在飞书内清理会话或重置线程。当前版本会继续复用已保存的 Codex thread；后续开放 /clear 时会先加入确认和审计。",
+    });
+
+    return { status: "handled", reason: "Clear command is not supported" };
   }
 
   #precheck(payload) {
@@ -311,6 +328,10 @@ function isStatusText(text) {
 
 function isCwdText(text) {
   return /^(\/cwd|cwd)(\s+.*)?$/i.test(text.trim());
+}
+
+function isClearText(text) {
+  return /^(\/clear|clear|清理会话|重置会话)(\s+.*)?$/i.test(text.trim());
 }
 
 function mapGroupSenderOpenIds(policy) {

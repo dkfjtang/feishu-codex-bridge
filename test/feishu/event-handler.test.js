@@ -555,6 +555,35 @@ test("handleMessageReceive skips cwd command when notice sender is unavailable",
   );
 });
 
+test("handleMessageReceive replies clear unsupported notice without starting a turn", async () => {
+  const notices = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for clear command");
+      },
+    },
+    unsupportedMessageClient: {
+      sendTextMessage: async (message) => {
+        notices.push(message);
+      },
+    },
+  });
+
+  const result = await handler.handleMessageReceive(
+    textPayload({ messageId: "om_clear", chatId: "oc_123", text: "/clear all" }),
+  );
+
+  assert.deepEqual(result, { status: "handled", reason: "Clear command is not supported" });
+  assert.deepEqual(notices, [
+    {
+      chatId: "oc_123",
+      text: "暂不支持在飞书内清理会话或重置线程。当前版本会继续复用已保存的 Codex thread；后续开放 /clear 时会先加入确认和审计。",
+    },
+  ]);
+  assert.equal(JSON.stringify(notices).includes("all"), false);
+});
+
 test("handleMessageReceive skips duplicate message ids", async () => {
   let calls = 0;
   const handler = new FeishuEventHandler({
