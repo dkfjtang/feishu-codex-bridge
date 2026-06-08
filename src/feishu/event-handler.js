@@ -10,6 +10,7 @@ export class FeishuEventHandler {
   #now;
   #maxEventAgeMs;
   #seenMessageIds = new Set();
+  #chatQueues = new Map();
 
   constructor({
     runtime,
@@ -46,11 +47,13 @@ export class FeishuEventHandler {
     }
     this.#seenMessageIds.add(message.messageId);
 
-    const task = await this.#runtime.handleTextMessage(message);
-    return {
-      status: "handled",
-      taskStatus: task.snapshot().status,
-    };
+    return this.#enqueue(message.chatId, async () => {
+      const task = await this.#runtime.handleTextMessage(message);
+      return {
+        status: "handled",
+        taskStatus: task.snapshot().status,
+      };
+    });
   }
 
   #precheck(payload) {
@@ -70,5 +73,21 @@ export class FeishuEventHandler {
     }
 
     return null;
+  }
+
+  #enqueue(chatId, task) {
+    const key = chatId || "unknown";
+    const previous = this.#chatQueues.get(key) ?? Promise.resolve();
+    const current = previous.then(task, task);
+    this.#chatQueues.set(key, current);
+
+    const cleanup = () => {
+      if (this.#chatQueues.get(key) === current) {
+        this.#chatQueues.delete(key);
+      }
+    };
+    current.then(cleanup, cleanup);
+
+    return current;
   }
 }

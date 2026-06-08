@@ -137,6 +137,129 @@ test("handleTextMessage syncs task card before and after turn", async () => {
   assert.deepEqual(syncStatuses, ["queued", "completed"]);
 });
 
+test("handleTextMessage throttles running card updates while streaming deltas", async () => {
+  const syncStatuses = [];
+  let emitEvent;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  let now = 0;
+  let timeoutCallback;
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncStatuses.push(`${task.snapshot().status}:${task.snapshot().summaryText}`);
+        task.attachCard("om_123");
+      },
+    },
+    runningUpdateThrottleMs: 1000,
+    now: () => now,
+    setTimeoutFn: (callback, delay) => {
+      timeoutCallback = { callback, delay };
+      return "timer";
+    },
+    clearTimeoutFn: () => {},
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  emitEvent({ method: "item/agentMessage/delta", params: { delta: "a" } });
+  await Promise.resolve();
+  emitEvent({ method: "item/agentMessage/delta", params: { delta: "b" } });
+  await Promise.resolve();
+
+  try {
+    assert.equal(timeoutCallback.delay, 1000);
+    assert.deepEqual(syncStatuses, ["queued:Codex 正在处理..."]);
+
+    now = 1000;
+    await timeoutCallback.callback();
+
+    assert.deepEqual(syncStatuses, ["queued:Codex 正在处理...", "running:ab"]);
+
+    emitEvent({ method: "turn/completed", params: { status: "success" } });
+    await pending;
+
+    assert.deepEqual(syncStatuses, ["queued:Codex 正在处理...", "running:ab", "completed:ab"]);
+  } finally {
+    emitEvent({ method: "turn/completed", params: { status: "success" } });
+    await pending.catch(() => {});
+  }
+});
+
+test("handleTextMessage keeps turn alive when a running card update fails", async () => {
+  let emitEvent;
+  let markEventReady;
+  const eventReady = new Promise((resolve) => {
+    markEventReady = resolve;
+  });
+  let syncCount = 0;
+  let timeoutCallback;
+  const runtime = new BridgeRuntime({
+    policy: allowDefaultPolicy(),
+    threadStore: new MemoryThreadStore({ now: () => "test-now" }),
+    session: fakeSession({
+      onEvent: (handler) => {
+        emitEvent = handler;
+        markEventReady();
+        return () => {};
+      },
+      startTurnHook: () => {},
+    }),
+    cardController: {
+      sync: async (task) => {
+        syncCount += 1;
+        task.attachCard("om_123");
+        if (task.snapshot().status === "running") {
+          throw new Error("rate limited");
+        }
+      },
+    },
+    runningUpdateThrottleMs: 0,
+    setTimeoutFn: (callback) => {
+      timeoutCallback = callback;
+      return "timer";
+    },
+    clearTimeoutFn: () => {},
+  });
+
+  const pending = runtime.handleTextMessage({
+    messageId: "msg_123",
+    openId: "ou_allowed",
+    chatId: "oc_123",
+    text: "hello",
+  });
+  await eventReady;
+  await Promise.resolve();
+
+  emitEvent({ method: "item/agentMessage/delta", params: { delta: "a" } });
+  await timeoutCallback();
+  emitEvent({ method: "turn/completed", params: { status: "success" } });
+
+  const task = await pending;
+
+  assert.equal(task.snapshot().status, "completed");
+  assert.equal(syncCount, 3);
+});
+
 test("handleTextMessage returns failed task when streamed turn fails", async () => {
   let emitEvent;
   const runtime = new BridgeRuntime({

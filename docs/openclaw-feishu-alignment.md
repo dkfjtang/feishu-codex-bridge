@@ -41,15 +41,17 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | 自回声过滤 | bot 自己发出的消息不再处理 | 已支持 `botOpenId` 过滤入口 |
 | 去重 | WebSocket 重连重复消息只处理一次 | 已支持进程内 message_id 去重 |
 | 过期事件丢弃 | 重连回放的旧事件丢弃 | 已支持 `create_time` 年龄校验 |
+| 按会话串行 | 同一 chat / thread 内任务串行执行 | 已支持按 `chat_id` 串行 |
+| 更新节流 | 流式内容低频刷新卡片 | 已支持 Codex delta 运行中节流更新 |
 
 ## 近期差距
 
 | 优先级 | 差距 | fca 处理方式 |
 | --- | --- | --- |
-| P0 | 真实飞书 SDK transport | 接入 `@larksuiteoapi/node-sdk`，实现长连接和消息 API |
-| P0 | bot open_id 探测 | dev 启动时查询 bot 身份，并注入 `FeishuEventHandler` |
-| P0 | 按 chat / thread 串行队列 | 增加 per-chat queue，避免同一会话并发 turn 打乱卡片 |
-| P0 | 卡片更新节流 | 增加 flush controller，delta 聚合后低频 patch |
+| P0 | 真实飞书 SDK transport | 已接入 `@larksuiteoapi/node-sdk`，实现长连接和消息 API |
+| P0 | bot open_id 探测 | 已在 dev 启动时查询 bot 身份，并注入 `FeishuEventHandler` |
+| P0 | 按 chat / thread 串行队列 | 已增加 per-chat queue，避免同一会话并发 turn 打乱卡片 |
+| P0 | 卡片更新节流 | 已增加 delta 聚合低频 patch |
 | P1 | CardKit 优先、IM patch fallback | MVP 先用 IM card patch，后续增加 CardKit 2.0 |
 | P1 | 取消快路径 | 识别“取消/停止/abort”并中断当前 turn、更新卡片 |
 | P1 | 群聊策略 | 私聊稳定后再做群聊 @、群 allowlist、sender allowlist |
@@ -68,7 +70,7 @@ OpenClaw 的入站链路包含以下护栏：
 5. 按 `account + chat + thread` 串行执行任务。
 6. 对取消文本走快速中断路径。
 
-fca 当前已实现 1 到 4；5 和 6 是下一阶段 P0/P1。
+fca 当前已实现 1 到 5；6 是下一阶段 P1。
 
 ## 卡片体验对齐
 
@@ -84,7 +86,7 @@ OpenClaw 的卡片链路包含：
 fca 的目标：
 
 - MVP：普通 IM 卡片 send + patch，running / completed / failed 三态稳定。
-- 下一步：增加节流 flush 和 per-chat queue。
+- 已增加运行中更新节流和 per-chat queue。
 - 后续：再评估 CardKit 2.0 和更丰富 footer 指标。
 
 ## 不对齐项

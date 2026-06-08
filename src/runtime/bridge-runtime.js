@@ -5,13 +5,31 @@ export class BridgeRuntime {
   #threadStore;
   #session;
   #cardController;
+  #now;
+  #setTimeout;
+  #clearTimeout;
+  #runningUpdateThrottleMs;
 
-  constructor({ policy, threadStore, session, cardController, turnTimeoutMs = 900_000 }) {
+  constructor({
+    policy,
+    threadStore,
+    session,
+    cardController,
+    turnTimeoutMs = 900_000,
+    runningUpdateThrottleMs = 3000,
+    now = () => Date.now(),
+    setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
+    clearTimeoutFn = (timer) => clearTimeout(timer),
+  }) {
     this.#policy = policy;
     this.#threadStore = threadStore;
     this.#session = session;
     this.#cardController = cardController;
     this.turnTimeoutMs = turnTimeoutMs;
+    this.#runningUpdateThrottleMs = runningUpdateThrottleMs;
+    this.#now = now;
+    this.#setTimeout = setTimeoutFn;
+    this.#clearTimeout = clearTimeoutFn;
   }
 
   async handleTextMessage({ messageId, openId, chatId, text }) {
@@ -45,7 +63,8 @@ export class BridgeRuntime {
       task.attachThread(threadId);
     }
 
-    const turnCompleted = this.#waitForTurnCompletion(task);
+    const runningUpdates = this.#createRunningUpdateScheduler(task);
+    const turnCompleted = this.#waitForTurnCompletion(task, runningUpdates);
     const turnResult = await this.#session.startTurn({ threadId, text, cwd });
     if (turnResult.turn?.id) {
       task.handleCodexEvent({
@@ -54,7 +73,11 @@ export class BridgeRuntime {
       });
     }
 
-    await turnCompleted;
+    try {
+      await turnCompleted;
+    } finally {
+      runningUpdates.cancel();
+    }
 
     await this.#threadStore.saveThread({
       openId,
@@ -67,13 +90,16 @@ export class BridgeRuntime {
     return task;
   }
 
-  #waitForTurnCompletion(task) {
+  #waitForTurnCompletion(task, runningUpdates) {
     let unsubscribe = () => {};
     let timeoutId;
 
     const completed = new Promise((resolve, reject) => {
       unsubscribe = this.#session.onEvent((event) => {
         task.handleCodexEvent(event);
+        if (event.method === "item/agentMessage/delta") {
+          runningUpdates.schedule();
+        }
         if (event.method === "turn/completed") {
           resolve();
         }
@@ -88,5 +114,40 @@ export class BridgeRuntime {
       clearTimeout(timeoutId);
       unsubscribe();
     });
+  }
+
+  #createRunningUpdateScheduler(task) {
+    let timer = null;
+    let lastSyncAt = this.#now();
+
+    const syncRunning = async () => {
+      timer = null;
+      lastSyncAt = this.#now();
+      if (task.snapshot().status === "running") {
+        try {
+          await this.#cardController.sync(task);
+        } catch {
+          // Running updates are best-effort; final sync still reports terminal state.
+        }
+      }
+    };
+
+    return {
+      schedule: () => {
+        if (timer) {
+          return;
+        }
+
+        const elapsed = this.#now() - lastSyncAt;
+        const delay = Math.max(this.#runningUpdateThrottleMs - elapsed, 0);
+        timer = this.#setTimeout(syncRunning, delay);
+      },
+      cancel: () => {
+        if (timer) {
+          this.#clearTimeout(timer);
+          timer = null;
+        }
+      },
+    };
   }
 }

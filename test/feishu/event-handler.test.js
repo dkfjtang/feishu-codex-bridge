@@ -64,6 +64,74 @@ test("handleMessageReceive skips unsupported events", async () => {
   assert.match(result.reason, /Only private chat messages/);
 });
 
+test("handleMessageReceive serializes messages in the same chat", async () => {
+  const calls = [];
+  let markFirstStarted;
+  const firstStarted = new Promise((resolve) => {
+    markFirstStarted = resolve;
+  });
+  let firstCanFinish;
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(`start:${message.messageId}`);
+        if (message.messageId === "om_1") {
+          await new Promise((resolve) => {
+            firstCanFinish = resolve;
+            markFirstStarted();
+          });
+        }
+        calls.push(`finish:${message.messageId}`);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+    },
+  });
+
+  const first = handler.handleMessageReceive(textPayload({ messageId: "om_1", chatId: "oc_123" }));
+  await firstStarted;
+  const second = handler.handleMessageReceive(textPayload({ messageId: "om_2", chatId: "oc_123" }));
+  await Promise.resolve();
+
+  assert.deepEqual(calls, ["start:om_1"]);
+
+  firstCanFinish();
+  await Promise.all([first, second]);
+
+  assert.deepEqual(calls, ["start:om_1", "finish:om_1", "start:om_2", "finish:om_2"]);
+});
+
+test("handleMessageReceive allows different chats to run concurrently", async () => {
+  const calls = [];
+  let firstCanFinish;
+  const firstStarted = new Promise((resolve) => {
+    firstCanFinish = resolve;
+  });
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async (message) => {
+        calls.push(`start:${message.messageId}`);
+        if (message.messageId === "om_1") {
+          await firstStarted;
+        }
+        calls.push(`finish:${message.messageId}`);
+        return { snapshot: () => ({ status: "completed" }) };
+      },
+    },
+  });
+
+  const first = handler.handleMessageReceive(textPayload({ messageId: "om_1", chatId: "oc_1" }));
+  await Promise.resolve();
+  const second = handler.handleMessageReceive(textPayload({ messageId: "om_2", chatId: "oc_2" }));
+  await second;
+
+  assert.deepEqual(calls, ["start:om_1", "start:om_2", "finish:om_2"]);
+
+  firstCanFinish();
+  await first;
+
+  assert.deepEqual(calls, ["start:om_1", "start:om_2", "finish:om_2", "finish:om_1"]);
+});
+
 test("handleMessageReceive skips duplicate message ids", async () => {
   let calls = 0;
   const handler = new FeishuEventHandler({
@@ -94,6 +162,21 @@ test("handleMessageReceive skips duplicate message ids", async () => {
   assert.deepEqual(first, { status: "handled", taskStatus: "completed" });
   assert.deepEqual(second, { status: "skipped", reason: "Duplicate Feishu message" });
 });
+
+function textPayload({ messageId, chatId }) {
+  return {
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: messageId,
+        chat_id: chatId,
+        chat_type: "p2p",
+        message_type: "text",
+        content: JSON.stringify({ text: "hello" }),
+      },
+    },
+  };
+}
 
 test("handleMessageReceive skips stale replayed messages", async () => {
   const handler = new FeishuEventHandler({
