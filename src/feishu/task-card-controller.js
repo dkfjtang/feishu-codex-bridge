@@ -6,6 +6,7 @@ export class TaskCardController {
   #retryDelayMs;
   #rateLimitRetryDelayMs;
   #setTimeout;
+  #footerFields;
   #syncQueue = Promise.resolve();
 
   constructor({
@@ -14,6 +15,7 @@ export class TaskCardController {
     retryDelayMs = 300,
     rateLimitRetryDelayMs = 1000,
     setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
+    footerFields,
   }) {
     if (typeof sendAction !== "function") {
       throw new TypeError("TaskCardController requires a sendAction function");
@@ -27,6 +29,7 @@ export class TaskCardController {
     this.#retryDelayMs = retryDelayMs;
     this.#rateLimitRetryDelayMs = rateLimitRetryDelayMs;
     this.#setTimeout = setTimeoutFn;
+    this.#footerFields = footerFields;
   }
 
   async sync(task) {
@@ -36,7 +39,9 @@ export class TaskCardController {
   }
 
   async #syncNow(task) {
-    const action = buildTaskCardAction(task.snapshot());
+    const action = buildTaskCardAction(task.snapshot(), {
+      footerFields: this.#footerFields,
+    });
     const result = await this.#sendWithRetry(action);
 
     if (action.type === "send" && result?.messageId) {

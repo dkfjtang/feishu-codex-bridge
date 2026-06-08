@@ -11,6 +11,18 @@ const DEFAULT_SQLITE_THREAD_STORE_PATH = "data/threads.sqlite";
 const DEFAULT_THREAD_STORE_DRIVER = "json";
 const DEFAULT_MESSAGE_DEDUP_STORE_PATH = "data/message-dedup.json";
 const DEFAULT_APP_VERSION = "0.1.0";
+const DEFAULT_CARD_FOOTER_FIELDS = [
+  "status",
+  "thread",
+  "turn",
+  "elapsed",
+  "tokens",
+  "model",
+  "version",
+  "error",
+  "cwd",
+];
+const SUPPORTED_CARD_FOOTER_FIELDS = new Set(DEFAULT_CARD_FOOTER_FIELDS);
 
 export function loadConfig(env = process.env) {
   const allowedWorkdirs = splitList(env.FCA_ALLOWED_WORKDIRS, ";");
@@ -67,6 +79,7 @@ export function loadConfig(env = process.env) {
     messageDedupTtlSeconds,
     turnTimeoutSeconds,
     approvalTimeoutSeconds,
+    cardFooterFields: parseCardFooterFields(env.FCA_CARD_FOOTER_FIELDS),
   };
 }
 
@@ -187,6 +200,21 @@ function parsePositiveInteger(value, fallback, name) {
   }
 
   return parsed;
+}
+
+function parseCardFooterFields(value) {
+  if (!value) {
+    return DEFAULT_CARD_FOOTER_FIELDS;
+  }
+
+  const fields = splitList(value, ",");
+  for (const field of fields) {
+    if (!SUPPORTED_CARD_FOOTER_FIELDS.has(field)) {
+      throw new Error(`FCA_CARD_FOOTER_FIELDS contains unsupported field: ${field}`);
+    }
+  }
+
+  return unique(fields);
 }
 
 function parseGroupSenderOpenIds(value) {

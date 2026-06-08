@@ -50,7 +50,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | 私聊文本入口 | 支持 DM 消息进入 Agent | 已支持私聊文本解析 |
 | 群聊 @ 入口 | 群聊需要按 mention、群配置和发送者策略触发 | 已支持明确 @ 当前 bot 的群聊文本，可用 `FCA_ALLOWED_GROUP_CHAT_IDS` 或 `FCA_GROUP_CONFIG_PATH` 限制群 `chat_id`，并可用群内 sender allowlist 进一步收紧 sender |
 | 卡片持续更新 | 先发卡片，再更新同一张卡片 | 已有 send / update action 和 controller，并串行化同一卡片更新；限频错误会指数退避，非重试业务错误会快速失败；卡片正文和 footer 会做尺寸收敛 |
-| footer | 可展示状态、耗时、模型、token 等 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd |
+| footer | 可展示状态、耗时、模型、token 等 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd，并支持 `FCA_CARD_FOOTER_FIELDS` 调整字段 |
 | app 归属校验 | 事件 app_id 不匹配时丢弃 | 已支持 `FEISHU_APP_ID` 校验 |
 | 自回声过滤 | bot 自己发出的消息不再处理 | 已支持 `botOpenId` 过滤入口 |
 | 去重 | WebSocket 重连重复消息只处理一次 | 已支持持久化 message_id 去重窗口 |
@@ -84,7 +84,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | P0 | 长连接启动、重连、事件分发和错误日志 | 已接入 SDK 长连接，并补充 WS lifecycle / event dispatch 结构化日志；已补退出信号治理、关闭结果日志、重建前关闭旧连接和启动失败清理，后续继续评估断线自动重连策略 |
 | P0 | 消息事件去重、回放过滤、自回声过滤 | 已实现基础护栏和持久化去重窗口，避免进程重启后重复处理 |
 | P0 | 持续回复卡片更新、节流和最终态兜底 | 已实现 running 节流、阶段标签更新、同一卡片互斥 flush、发送/更新错误分类退避和最终态更新；后续继续补 CardKit 降级策略 |
-| P0 | 卡片 footer 的状态、会话和排障字段 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd |
+| P0 | 卡片 footer 的状态、会话和排障字段 | 已展示 status / thread / turn / elapsed / token / cache / context / model / fca version / error type / cwd，并支持字段可配置 |
 | P1 | 群聊 @、群配置和发送者策略 | 已实现 @ 触发、可选群 `chat_id` allowlist、群级 JSON 配置文件、全局发送者 `open_id` 白名单、群内 sender 收紧策略和群级 developer instructions |
 | P1 | 敏感操作确认卡片 | 已映射到 Codex approval server request，展示风险等级、固定枚举风险因素和脱敏范围摘要，并支持同一卡片展开详情；不复用 OpenClaw tool approval 内核 |
 | P1 | CardKit 2.0 与普通卡片降级 | 先保留 IM patch；后续实现 CardKit 优先、IM patch fallback |
@@ -153,7 +153,7 @@ fca 的目标：
 
 - MVP：普通 IM 卡片 send + patch，running / completed / failed 三态稳定。
 - 已增加运行中更新节流、同一卡片互斥 flush、发送/更新错误分类退避、卡片 payload 尺寸保护、per-chat queue 和飞书 API 错误归一化。
-- 后续：再评估 CardKit 2.0 和 footer 字段可配置化。
+- 后续：再评估 CardKit 2.0；footer 字段可配置化已由 `FCA_CARD_FOOTER_FIELDS` 支持。
 
 ## 不对齐项
 

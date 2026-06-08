@@ -1,7 +1,7 @@
 import { renderTaskCard } from "./task-card-renderer.js";
 
-export function buildTaskCardAction(snapshot) {
-  const card = renderTaskCard(snapshot);
+export function buildTaskCardAction(snapshot, options = {}) {
+  const card = renderTaskCard(snapshot, options);
 
   if (snapshot.cardMessageId) {
     return {

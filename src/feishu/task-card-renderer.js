@@ -1,5 +1,16 @@
 const BODY_LIMIT = 1000;
 const FOOTER_FIELD_LIMIT = 120;
+const DEFAULT_FOOTER_FIELDS = [
+  "status",
+  "thread",
+  "turn",
+  "elapsed",
+  "tokens",
+  "model",
+  "version",
+  "error",
+  "cwd",
+];
 
 const STATUS_META = {
   queued: { title: "任务已接收", template: "blue" },
@@ -10,7 +21,7 @@ const STATUS_META = {
   cancelled: { title: "已取消", template: "grey" },
 };
 
-export function renderTaskCard(snapshot) {
+export function renderTaskCard(snapshot, { footerFields = DEFAULT_FOOTER_FIELDS } = {}) {
   const meta = STATUS_META[snapshot.status] ?? STATUS_META.running;
 
   return {
@@ -41,7 +52,7 @@ export function renderTaskCard(snapshot) {
         elements: [
           {
             tag: "lark_md",
-            content: footerText(snapshot),
+            content: footerText(snapshot, footerFields),
           },
         ],
       },
@@ -139,23 +150,39 @@ function joinBody(parts) {
   return parts.filter(Boolean).join("\n\n");
 }
 
-function footerText(snapshot) {
-  return [
-    `状态: ${snapshot.status}`,
-    snapshot.threadId ? `thread: ${shortId(snapshot.threadId)}` : null,
-    snapshot.turnId ? `turn: ${shortId(snapshot.turnId)}` : null,
-    typeof snapshot.elapsedMs === "number" ? `耗时: ${formatElapsed(snapshot.elapsedMs)}` : null,
-    tokenUsageText(snapshot.tokenUsage),
-    footerField("model", snapshot.model),
-    footerField("fca", snapshot.appVersion),
-    footerField("错误", snapshot.errorType),
-    snapshot.cwd ? `cwd: ${compactPath(snapshot.cwd)}` : null,
-  ]
+function footerText(snapshot, footerFields) {
+  return footerFields
+    .map((field) => footerFieldText(field, snapshot))
     .filter(Boolean)
     .join(" | ");
 }
 
-function footerField(label, value) {
+function footerFieldText(field, snapshot) {
+  switch (field) {
+    case "status":
+      return `状态: ${snapshot.status}`;
+    case "thread":
+      return snapshot.threadId ? `thread: ${shortId(snapshot.threadId)}` : null;
+    case "turn":
+      return snapshot.turnId ? `turn: ${shortId(snapshot.turnId)}` : null;
+    case "elapsed":
+      return typeof snapshot.elapsedMs === "number" ? `耗时: ${formatElapsed(snapshot.elapsedMs)}` : null;
+    case "tokens":
+      return tokenUsageText(snapshot.tokenUsage);
+    case "model":
+      return labeledFooterField("model", snapshot.model);
+    case "version":
+      return labeledFooterField("fca", snapshot.appVersion);
+    case "error":
+      return labeledFooterField("错误", snapshot.errorType);
+    case "cwd":
+      return snapshot.cwd ? `cwd: ${compactPath(snapshot.cwd)}` : null;
+    default:
+      return null;
+  }
+}
+
+function labeledFooterField(label, value) {
   return value ? `${label}: ${truncateMiddle(String(value), FOOTER_FIELD_LIMIT)}` : null;
 }
 

@@ -24,6 +24,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
     FCA_MESSAGE_DEDUP_TTL_SECONDS: "3600",
     FCA_TURN_TIMEOUT_SECONDS: "120",
     FCA_APPROVAL_TIMEOUT_SECONDS: "30",
+    FCA_CARD_FOOTER_FIELDS: "status,elapsed,tokens,model",
   });
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
@@ -51,6 +52,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   assert.equal(config.messageDedupTtlSeconds, 3600);
   assert.equal(config.turnTimeoutSeconds, 120);
   assert.equal(config.approvalTimeoutSeconds, 30);
+  assert.deepEqual(config.cardFooterFields, ["status", "elapsed", "tokens", "model"]);
 });
 
 test("loadConfig merges group configuration file with env group settings", () => {
@@ -113,6 +115,17 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   assert.equal(config.messageDedupTtlSeconds, 86400);
   assert.equal(config.turnTimeoutSeconds, 900);
   assert.equal(config.approvalTimeoutSeconds, 300);
+  assert.deepEqual(config.cardFooterFields, [
+    "status",
+    "thread",
+    "turn",
+    "elapsed",
+    "tokens",
+    "model",
+    "version",
+    "error",
+    "cwd",
+  ]);
 });
 
 test("loadConfig uses sqlite default thread store path when sqlite driver is selected", () => {
@@ -172,5 +185,12 @@ test("loadConfig rejects unsupported thread store driver", () => {
   assert.throws(
     () => loadConfig({ FCA_THREAD_STORE_DRIVER: "mysql" }),
     /FCA_THREAD_STORE_DRIVER must be json or sqlite/,
+  );
+});
+
+test("loadConfig rejects unsupported card footer fields", () => {
+  assert.throws(
+    () => loadConfig({ FCA_CARD_FOOTER_FIELDS: "status,secret" }),
+    /FCA_CARD_FOOTER_FIELDS contains unsupported field: secret/,
   );
 });

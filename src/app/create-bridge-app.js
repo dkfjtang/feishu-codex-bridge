@@ -34,6 +34,7 @@ export function createBridgeApp({
   });
   const cardController = new TaskCardController({
     sendAction: (action) => feishuMessageClient.sendAction(action),
+    footerFields: config.cardFooterFields,
   });
   const appServer = codexAppServerFactory({
     codexBin: config.codexBin,

@@ -69,6 +69,36 @@ test("renderTaskCard renders running status with thread and turn footer", () => 
   assert.match(card.elements[0].text.content, /正在检查 README/);
 });
 
+test("renderTaskCard can render only configured footer fields", () => {
+  const card = renderTaskCard(
+    {
+      taskId: "task_123",
+      status: "running",
+      cwd: "F:\\development\\f-codex",
+      summaryText: "正在检查 README",
+      finalText: "",
+      threadId: "thr_123456789",
+      turnId: "turn_123456789",
+      model: "gpt-5.1-codex",
+      appVersion: "0.2.0-test",
+      elapsedMs: 3500,
+      tokenUsage: {
+        total: {
+          totalTokens: 9500,
+          cachedInputTokens: 2500,
+        },
+        modelContextWindow: 38000,
+      },
+    },
+    {
+      footerFields: ["status", "elapsed", "tokens"],
+    },
+  );
+
+  const footer = card.elements.at(-1).elements[0].content;
+  assert.equal(footer, "状态: running | 耗时: 3.5s | tokens: 9.5k / cache: 2.5k / ctx: 25%");
+});
+
 test("renderTaskCard renders completed status with final text", () => {
   const card = renderTaskCard({
     taskId: "task_123",

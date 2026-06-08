@@ -53,6 +53,34 @@ test("sync updates existing card without replacing card message id", async () =>
   assert.equal(task.snapshot().cardMessageId, "om_123");
 });
 
+test("sync renders cards with configured footer fields", async () => {
+  const task = new RuntimeTask({
+    taskId: "task_123",
+    feishuChatId: "oc_123",
+    cwd: "F:\\development\\f-codex",
+    model: "gpt-5.1-codex",
+    appVersion: "0.2.0-test",
+  });
+  task.handleCodexEvent({
+    method: "turn/started",
+    params: { turn: { id: "turn_123" } },
+  });
+
+  const actions = [];
+  const controller = new TaskCardController({
+    footerFields: ["status", "model"],
+    sendAction: async (action) => {
+      actions.push(action);
+      return { messageId: "om_123" };
+    },
+  });
+
+  await controller.sync(task);
+
+  const footer = actions[0].card.elements.at(-1).elements[0].content;
+  assert.equal(footer, "状态: running | model: gpt-5.1-codex");
+});
+
 test("sync surfaces sender failures", async () => {
   const task = new RuntimeTask({
     taskId: "task_123",
