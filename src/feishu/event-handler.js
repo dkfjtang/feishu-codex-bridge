@@ -17,6 +17,7 @@ export class FeishuEventHandler {
   #maxEventAgeMs;
   #messageDedupStore;
   #unsupportedMessageClient;
+  #logger;
   #seenMessageIds = new Set();
   #chatQueues = new Map();
 
@@ -30,6 +31,7 @@ export class FeishuEventHandler {
     maxEventAgeMs = 5 * 60 * 1000,
     messageDedupStore = null,
     unsupportedMessageClient = null,
+    logger = null,
   }) {
     this.#runtime = runtime;
     this.#expectedAppId = expectedAppId;
@@ -40,9 +42,18 @@ export class FeishuEventHandler {
     this.#maxEventAgeMs = maxEventAgeMs;
     this.#messageDedupStore = messageDedupStore;
     this.#unsupportedMessageClient = unsupportedMessageClient;
+    this.#logger = logger ?? {
+      info: () => {},
+    };
   }
 
   async handleMessageReceive(payload) {
+    const result = await this.#handleMessageReceive(payload);
+    this.#logMessageResult(payload, result);
+    return result;
+  }
+
+  async #handleMessageReceive(payload) {
     const precheck = this.#precheck(payload);
     if (precheck) {
       return precheck;
@@ -242,6 +253,31 @@ export class FeishuEventHandler {
 
     return allowedOpenIds.has(action.openId);
   }
+
+  #logMessageResult(payload, result) {
+    const event = result?.status === "skipped" ? "feishu.message_skipped" : "feishu.message_handled";
+    const write = this.#logger.info ?? (() => {});
+    const fields = {
+      ...messageLogFields(payload),
+      resultStatus: result?.status ?? "unknown",
+    };
+    if (result?.taskStatus) {
+      fields.taskStatus = result.taskStatus;
+    }
+    if (result?.reason) {
+      fields.reason = result.reason;
+    }
+    write(event, fields);
+  }
+}
+
+function messageLogFields(payload) {
+  const message = payload?.event?.message ?? {};
+  return {
+    messageId: message.message_id ?? null,
+    chatId: message.chat_id ?? null,
+    chatType: message.chat_type ?? null,
+  };
 }
 
 function isCancelText(text) {

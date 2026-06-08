@@ -39,6 +39,40 @@ test("handleMessageReceive passes parsed text message to bridge runtime", async 
   assert.deepEqual(result, { status: "handled", taskStatus: "completed" });
 });
 
+test("handleMessageReceive logs handled message gate result without message content", async () => {
+  const logEntries = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => ({ snapshot: () => ({ status: "completed" }) }),
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_123",
+        chat_id: "oc_123",
+        chat_type: "p2p",
+        message_type: "text",
+        content: JSON.stringify({ text: "secret user task" }),
+      },
+    },
+  });
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "info",
+    event: "feishu.message_handled",
+    messageId: "om_123",
+    chatId: "oc_123",
+    chatType: "p2p",
+    resultStatus: "handled",
+    taskStatus: "completed",
+  });
+  assert.equal(JSON.stringify(logEntries).includes("secret user task"), false);
+});
+
 test("handleMessageReceive skips unsupported events", async () => {
   const handler = new FeishuEventHandler({
     runtime: {
@@ -63,6 +97,43 @@ test("handleMessageReceive skips unsupported events", async () => {
 
   assert.equal(result.status, "skipped");
   assert.match(result.reason, /Group messages require bot open_id|Group message does not mention bot/);
+});
+
+test("handleMessageReceive logs skipped message gate result without raw content", async () => {
+  const logEntries = [];
+  const handler = new FeishuEventHandler({
+    runtime: {
+      handleTextMessage: async () => {
+        throw new Error("should not start Codex turn for file message");
+      },
+    },
+    logger: fakeLogger(logEntries),
+  });
+
+  await handler.handleMessageReceive({
+    event: {
+      sender: { sender_id: { open_id: "ou_123" } },
+      message: {
+        message_id: "om_file",
+        chat_id: "oc_123",
+        chat_type: "group",
+        message_type: "file",
+        content: JSON.stringify({ file_key: "file_secret", file_name: "secret.txt" }),
+      },
+    },
+  });
+
+  assert.deepEqual(logEntries.at(-1), {
+    level: "info",
+    event: "feishu.message_skipped",
+    messageId: "om_file",
+    chatId: "oc_123",
+    chatType: "group",
+    resultStatus: "skipped",
+    reason: "Only text messages are supported",
+  });
+  assert.equal(JSON.stringify(logEntries).includes("file_secret"), false);
+  assert.equal(JSON.stringify(logEntries).includes("secret.txt"), false);
 });
 
 test("handleMessageReceive replies unsupported notice for private non-text messages", async () => {
@@ -777,3 +848,10 @@ test("handleCardAction skips unsupported card actions", async () => {
 
   assert.deepEqual(result, { status: "skipped", reason: "Unsupported Feishu card action" });
 });
+
+function fakeLogger(entries) {
+  return {
+    info: (event, fields) => entries.push({ level: "info", event, ...fields }),
+    error: (event, fields) => entries.push({ level: "error", event, ...fields }),
+  };
+}

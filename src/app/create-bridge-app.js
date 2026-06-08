@@ -71,6 +71,7 @@ export function createBridgeApp({
         groupSenderOpenIds: config.groupSenderOpenIds,
         messageDedupStore,
         unsupportedMessageClient: feishuMessageClient,
+        logger,
       });
       return eventHandler;
     },

@@ -237,9 +237,12 @@ test("createBridgeApp passes logger to bridge runtime task handling", async () =
     },
   });
 
-  assert.equal(logEntries.at(-1).event, "task.completed");
-  assert.equal(logEntries.at(-1).messageId, "om_123");
-  assert.equal(logEntries.at(-1).turnId, "turn_123");
+  const completed = logEntries.find((entry) => entry.event === "task.completed");
+  assert.equal(completed.messageId, "om_123");
+  assert.equal(completed.turnId, "turn_123");
+  const handled = logEntries.find((entry) => entry.event === "feishu.message_handled");
+  assert.equal(handled.messageId, "om_123");
+  assert.equal(handled.resultStatus, "handled");
 });
 
 test("createBridgeApp wires message dedup store into event handler", async () => {
