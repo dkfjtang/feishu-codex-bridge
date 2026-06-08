@@ -127,6 +127,7 @@ Done 标准：
 - `item/started` / `item/completed` 已进入 RuntimeTask snapshot，并在运行中卡片正文展示安全阶段标签。
 - app-server JSON-RPC server request 已进入分发层；approval request 会把任务切到 `waiting_approval`、更新脱敏卡片，并通过飞书按钮回写 app-server decision；无人处理超时后默认回写 `decline`。
 - `FCA_APPROVAL_TIMEOUT_SECONDS` 已提供审批请求等待时间配置；超时后会记录 `task.approval_timeout` 并 best-effort 同步卡片。
+- 审批卡片已展示风险等级和脱敏范围摘要，包括目录别名、命令动作类型数量、文件变更数量和扩展名、权限读写数量、网络目标域名。
 - Thread Store 默认继续使用 JSON 文件，并已支持 `FCA_THREAD_STORE_DRIVER=sqlite` 的可选 SQLite 后端。
 - `npm run migrate:thread-store` 已提供 JSON thread store 到 SQLite 的 dry-run 和迁移能力。
 
@@ -143,7 +144,7 @@ Done 标准：
 
 候选能力：
 
-- 审批卡片详情脱敏增强和风险摘要。
+- 审批卡片详情确认页和更细风险分级。
 - CardKit 2.0 流式卡片，失败后回退 IM patch。
 - 取消/停止任务快路径。
 - 文件下载和回传。

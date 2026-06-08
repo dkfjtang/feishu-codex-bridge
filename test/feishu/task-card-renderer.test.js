@@ -128,12 +128,16 @@ test("renderTaskCard renders waiting approval summary", () => {
       itemId: "item_123",
       status: "pending",
       summary: "Codex 请求执行命令，需要审批。",
+      details: ["风险: 高", "目录: f-codex", "命令动作: 读取 1"],
     },
   });
 
   assert.equal(card.header.title.content, "需要确认");
   assert.equal(card.header.template, "orange");
-  assert.equal(card.elements[0].text.content, "Codex 请求执行命令，需要审批。\n\napproval: approval");
+  assert.equal(
+    card.elements[0].text.content,
+    "Codex 请求执行命令，需要审批。\n\n风险: 高\n目录: f-codex\n命令动作: 读取 1\n\napproval: approval",
+  );
   assert.equal(card.elements[1].tag, "action");
   assert.deepEqual(
     card.elements[1].actions.map((action) => action.value.decision),

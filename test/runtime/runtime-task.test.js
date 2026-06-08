@@ -240,8 +240,103 @@ test("approval request moves task to waiting approval without raw details", () =
     type: "command",
     status: "pending",
     summary: "Codex 请求执行命令，需要审批。",
+    risk: "中",
+    details: ["风险: 中", "目录: f-codex"],
   });
   assert.equal(JSON.stringify(snapshot.approval).includes("secret.txt"), false);
+});
+
+test("approval request summarizes command actions without raw command details", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.handleCodexEvent({
+    method: "item/commandExecution/requestApproval",
+    requestId: 7,
+    serverRequest: true,
+    params: {
+      itemId: "item_123",
+      approvalId: "approval_123",
+      command: "cat C:\\Users\\Administrator\\secret.txt",
+      cwd: "F:\\development\\f-codex",
+      commandActions: [
+        { type: "read", path: "C:\\Users\\Administrator\\secret.txt", command: "cat secret.txt" },
+        { type: "search", query: "password", command: "rg password" },
+      ],
+      networkApprovalContext: { protocol: "https", host: "api.example.com" },
+    },
+  });
+
+  const approval = task.snapshot().approval;
+  assert.equal(approval.risk, "高");
+  assert.deepEqual(approval.details, [
+    "风险: 高",
+    "目录: f-codex",
+    "命令动作: 读取 1 / 搜索 1",
+    "网络目标: api.example.com",
+  ]);
+  assert.equal(JSON.stringify(approval).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(approval).includes("password"), false);
+});
+
+test("file change approval summarizes counts and extensions without paths or diffs", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.handleCodexEvent({
+    method: "applyPatchApproval",
+    requestId: 7,
+    serverRequest: true,
+    params: {
+      callId: "call_123",
+      conversationId: "thr_123",
+      grantRoot: "F:\\development\\f-codex",
+      fileChanges: {
+        "F:\\development\\f-codex\\secret.txt": { type: "update", unified_diff: "-password\n+token" },
+        "F:\\development\\f-codex\\src\\app.js": { type: "add", content: "secret" },
+      },
+    },
+  });
+
+  const approval = task.snapshot().approval;
+  assert.deepEqual(approval.details, [
+    "风险: 高",
+    "目录: f-codex",
+    "文件变更: 2 个 (修改 1 / 新增 1), 扩展名: .txt, .js",
+  ]);
+  assert.equal(JSON.stringify(approval).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(approval).includes("password"), false);
+  assert.equal(JSON.stringify(approval).includes("app.js"), false);
+});
+
+test("permissions approval summarizes requested permission counts", () => {
+  const task = new RuntimeTask({ taskId: "task_123" });
+
+  task.handleCodexEvent({
+    method: "item/permissions/requestApproval",
+    requestId: 7,
+    serverRequest: true,
+    params: {
+      itemId: "item_123",
+      cwd: "F:\\development\\f-codex",
+      permissions: {
+        fileSystem: {
+          read: ["C:\\Users\\Administrator\\secret.txt"],
+          write: ["F:\\development\\f-codex\\out.txt", "F:\\development\\f-codex\\log.txt"],
+        },
+        network: { enabled: true },
+      },
+      reason: "need secret",
+    },
+  });
+
+  const approval = task.snapshot().approval;
+  assert.deepEqual(approval.details, [
+    "风险: 高",
+    "目录: f-codex",
+    "权限: 读 1 / 写 2 / 网络开启",
+    "包含说明: 是",
+  ]);
+  assert.equal(JSON.stringify(approval).includes("secret.txt"), false);
+  assert.equal(JSON.stringify(approval).includes("need secret"), false);
 });
 
 test("resolveApproval records decision without raw details", () => {
@@ -263,6 +358,7 @@ test("resolveApproval records decision without raw details", () => {
   assert.equal(snapshot.status, "waiting_approval");
   assert.equal(snapshot.approval.status, "declined");
   assert.equal(snapshot.approval.summary, "已拒绝本次操作，等待 Codex 收尾。");
+  assert.equal(snapshot.approval.risk, "高");
   assert.equal(JSON.stringify(snapshot.approval).includes("secret.txt"), false);
 });
 

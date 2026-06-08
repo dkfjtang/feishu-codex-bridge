@@ -106,8 +106,17 @@ function cardBody(snapshot) {
 function approvalBody(snapshot) {
   return joinBody([
     snapshot.approval?.summary ?? "Codex 请求审批。",
+    approvalDetails(snapshot.approval),
     snapshot.approval?.approvalId ? `approval: ${shortId(String(snapshot.approval.approvalId))}` : null,
   ]);
+}
+
+function approvalDetails(approval) {
+  if (!Array.isArray(approval?.details) || approval.details.length === 0) {
+    return null;
+  }
+
+  return approval.details.slice(0, 6).join("\n");
 }
 
 function stageText(snapshot, fallbackPrefix = "阶段") {

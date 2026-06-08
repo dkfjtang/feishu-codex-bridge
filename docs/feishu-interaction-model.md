@@ -73,7 +73,7 @@ fca 可以高度复用 OpenClaw 类飞书插件的交互体验，但不应完全
 展示：
 
 - 标题：需要确认
-- 正文：Codex approval server request 的脱敏动作摘要和 approval 短 id
+- 正文：Codex approval server request 的脱敏动作摘要、风险等级、范围摘要和 approval 短 id
 - 操作：允许一次、本会话允许、拒绝、停止
 - footer：`thread_id`、`turn_id`、approval id
 
@@ -178,8 +178,8 @@ MVP 策略：
 审批卡片承载：
 
 - 动作类型：命令、写文件、联网、外发文件、切换目录。
-- 影响范围：当前最小实现只展示 approval 短 id，后续再加入脱敏范围摘要。
-- 风险等级：后续补充。
+- 影响范围：展示脱敏范围摘要，例如目录别名、命令动作类型数量、文件变更数量和扩展名、权限读写数量、网络目标域名。
+- 风险等级：按审批类型和网络/权限信号给出中/高。
 - 选择项：允许一次、本会话允许、拒绝、停止任务。
 - 回调上下文：`thread_id`、`turn_id`、approval id。
 
@@ -187,6 +187,7 @@ MVP 策略：
 
 审批结果必须回写 Codex app-server，而不是只更新飞书卡片。
 审批处理会写结构化日志，包括 requested、resolved 和 timeout 事件，日志只包含脱敏 approval id / item id / decision。
+审批正文和日志不得展示命令正文、diff、完整路径、搜索词、reason 原文或 raw payload。
 
 ## 与 OpenClaw 能力的复用边界
 
