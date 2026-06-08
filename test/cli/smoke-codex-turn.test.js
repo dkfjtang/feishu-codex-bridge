@@ -46,6 +46,7 @@ test("parseSmokeArgs rejects unknown flags", () => {
 
 test("runSmokeCodexTurn waits for turn completion events", async () => {
   let emitEvent;
+  let stopped = false;
   const task = await runSmokeCodexTurn({
     prompt: "hello",
     cwd: "F:\\development\\f-codex",
@@ -70,10 +71,14 @@ test("runSmokeCodexTurn waits for turn completion events", async () => {
             return { turn: { id: "turn_123" } };
           },
         }),
+        stop: () => {
+          stopped = true;
+        },
       };
     },
   });
 
   assert.equal(task.snapshot().status, "completed");
   assert.equal(task.snapshot().finalText, "done");
+  assert.equal(stopped, true);
 });

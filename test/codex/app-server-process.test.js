@@ -10,6 +10,7 @@ test("start spawns codex app-server and initializes the session", async () => {
   const spawnCalls = [];
   const process = new CodexAppServerProcess({
     codexBin: "codex",
+    processPlatform: "linux",
     spawnFn: (command, args, options) => {
       spawnCalls.push({ command, args, options });
       return child;
@@ -35,6 +36,50 @@ test("start spawns codex app-server and initializes the session", async () => {
 
   const initialized = child.stdin.read().toString("utf8");
   assert.match(initialized, /"method":"initialized"/);
+});
+
+test("start resolves bare codex to cmd shim on Windows", async () => {
+  const child = createFakeChildProcess();
+  const spawnCalls = [];
+  const process = new CodexAppServerProcess({
+    codexBin: "codex",
+    processPlatform: "win32",
+    spawnFn: (command, args, options) => {
+      spawnCalls.push({ command, args, options });
+      return child;
+    },
+  });
+
+  const startPromise = process.start();
+  child.stdout.write('{"id":1,"result":{}}\n');
+  await startPromise;
+
+  assert.deepEqual(spawnCalls, [
+    {
+      command: "cmd.exe",
+      args: ["/d", "/s", "/c", "codex.cmd app-server"],
+      options: { stdio: ["pipe", "pipe", "pipe"] },
+    },
+  ]);
+});
+
+test("start keeps explicit codex binary values unchanged", async () => {
+  const child = createFakeChildProcess();
+  const spawnCalls = [];
+  const process = new CodexAppServerProcess({
+    codexBin: "codex-nightly",
+    processPlatform: "win32",
+    spawnFn: (command, args, options) => {
+      spawnCalls.push({ command, args, options });
+      return child;
+    },
+  });
+
+  const startPromise = process.start();
+  child.stdout.write('{"id":1,"result":{}}\n');
+  await startPromise;
+
+  assert.equal(spawnCalls[0].command, "codex-nightly");
 });
 
 test("stderr lines are forwarded to the log handler", () => {
@@ -65,6 +110,26 @@ test("exit event marks process unavailable", async () => {
 
   child.emit("exit", 1, null);
 
+  assert.equal(process.isAvailable(), false);
+});
+
+test("stop terminates the child process and marks it unavailable", async () => {
+  const child = createFakeChildProcess();
+  let killed = false;
+  child.kill = () => {
+    killed = true;
+  };
+  const process = new CodexAppServerProcess({
+    spawnFn: () => child,
+  });
+
+  const startPromise = process.start();
+  child.stdout.write('{"id":1,"result":{}}\n');
+  await startPromise;
+
+  process.stop();
+
+  assert.equal(killed, true);
   assert.equal(process.isAvailable(), false);
 });
 

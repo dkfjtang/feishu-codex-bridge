@@ -96,21 +96,27 @@ export async function runSmokeCodexTurn({
     },
   });
 
-  const session = await appServer.start();
-  const threadResult = await session.startThread(model ? { model } : {});
-  const threadId = threadResult.thread.id;
-  task.attachThread(threadId);
+  try {
+    const session = await appServer.start();
+    const threadResult = await session.startThread(model ? { model } : {});
+    const threadId = threadResult.thread.id;
+    task.attachThread(threadId);
 
-  const turnResult = await session.startTurn({ threadId, text: prompt, cwd });
-  if (turnResult.turn?.id && task.snapshot().status === "queued") {
-    task.handleCodexEvent({
-      method: "turn/started",
-      params: { turn: { id: turnResult.turn.id } },
-    });
+    const turnResult = await session.startTurn({ threadId, text: prompt, cwd });
+    if (turnResult.turn?.id && task.snapshot().status === "queued") {
+      task.handleCodexEvent({
+        method: "turn/started",
+        params: { turn: { id: turnResult.turn.id } },
+      });
+    }
+
+    await withTimeout(turnCompleted, turnTimeoutMs);
+    return task;
+  } finally {
+    if (typeof appServer.stop === "function") {
+      appServer.stop();
+    }
   }
-
-  await withTimeout(turnCompleted, turnTimeoutMs);
-  return task;
 }
 
 function readValue(args, index, flag) {

@@ -5,21 +5,25 @@ import { JsonLineChannel } from "./json-line-channel.js";
 
 export class CodexAppServerProcess {
   #codexBin;
+  #processPlatform;
   #spawnFn;
   #onEvent;
   #onStderr;
   #onProtocolError;
+  #child = null;
   #session = null;
   #available = false;
 
   constructor({
     codexBin = "codex",
+    processPlatform = process.platform,
     spawnFn = spawn,
     onEvent = () => {},
     onStderr = () => {},
     onProtocolError = () => {},
   } = {}) {
     this.#codexBin = codexBin;
+    this.#processPlatform = processPlatform;
     this.#spawnFn = spawnFn;
     this.#onEvent = onEvent;
     this.#onStderr = onStderr;
@@ -27,9 +31,11 @@ export class CodexAppServerProcess {
   }
 
   async start() {
-    const child = this.#spawnFn(this.#codexBin, ["app-server"], {
+    const spawnSpec = buildAppServerSpawnSpec(this.#codexBin, this.#processPlatform);
+    const child = this.#spawnFn(spawnSpec.command, spawnSpec.args, {
       stdio: ["pipe", "pipe", "pipe"],
     });
+    this.#child = child;
 
     this.#session = new AppServerSession({
       write: (message) => channel.write(message),
@@ -61,6 +67,28 @@ export class CodexAppServerProcess {
   isAvailable() {
     return this.#available;
   }
+
+  stop() {
+    this.#available = false;
+    if (this.#child && typeof this.#child.kill === "function") {
+      this.#child.kill();
+    }
+    this.#child = null;
+  }
+}
+
+function buildAppServerSpawnSpec(codexBin, processPlatform) {
+  if (processPlatform === "win32" && codexBin === "codex") {
+    return {
+      command: "cmd.exe",
+      args: ["/d", "/s", "/c", "codex.cmd app-server"],
+    };
+  }
+
+  return {
+    command: codexBin,
+    args: ["app-server"],
+  };
 }
 
 function forwardLines(stream, onLine) {

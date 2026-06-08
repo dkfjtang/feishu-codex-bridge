@@ -4,8 +4,6 @@
 
 建议后续脚本：
 
-- `check-config`：检查必需配置和凭据占位。
-- `check-codex-app-server`：验证本机 `codex app-server` 可启动。
 - `smoke-codex-turn`：不依赖飞书，直接跑通一次 Codex turn。
 
 当前可用验证命令：
@@ -19,6 +17,12 @@ npm run check-config
 ```
 
 `check-config` 会检查飞书凭据、open_id 白名单、工作目录白名单、默认工作目录和基础 runtime 配置；它只读取当前环境变量，不读取或提交真实 `.env`。
+
+```powershell
+npm run check-codex-app-server -- --help
+```
+
+`check-codex-app-server` 会启动本机 `codex app-server` 并验证 `initialize` 能完成，不会创建 thread 或发起 turn。
 
 ```powershell
 npm run dev
