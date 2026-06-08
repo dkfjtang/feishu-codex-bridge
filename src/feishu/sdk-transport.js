@@ -1,17 +1,33 @@
 export class FeishuSdkTransport {
   #appId;
   #appSecret;
+  #verificationToken;
+  #encryptKey;
   #createClient;
+  #createEventDispatcher;
+  #createWsClient;
   #clientPromise = null;
 
-  constructor({ appId, appSecret, createClient = createDefaultClient }) {
+  constructor({
+    appId,
+    appSecret,
+    verificationToken = "",
+    encryptKey = "",
+    createClient = createDefaultClient,
+    createEventDispatcher = createDefaultEventDispatcher,
+    createWsClient = createDefaultWsClient,
+  }) {
     if (!appId?.trim() || !appSecret?.trim()) {
       throw new Error("FeishuSdkTransport requires FEISHU_APP_ID and FEISHU_APP_SECRET");
     }
 
     this.#appId = appId.trim();
     this.#appSecret = appSecret.trim();
+    this.#verificationToken = verificationToken;
+    this.#encryptKey = encryptKey;
     this.#createClient = createClient;
+    this.#createEventDispatcher = createEventDispatcher;
+    this.#createWsClient = createWsClient;
   }
 
   async sendMessage({ receiveIdType, receiveId, msgType, content }) {
@@ -73,6 +89,33 @@ export class FeishuSdkTransport {
     }
   }
 
+  async startMessageListener({ onMessageReceive }) {
+    if (typeof onMessageReceive !== "function") {
+      throw new TypeError("startMessageListener requires onMessageReceive");
+    }
+
+    const dispatcher = await this.#createEventDispatcher({
+      verificationToken: this.#verificationToken,
+      encryptKey: this.#encryptKey,
+    });
+    dispatcher.register({
+      "im.message.receive_v1": onMessageReceive,
+      "im.message.message_read_v1": async () => {},
+      "im.message.reaction.created_v1": async () => {},
+      "im.message.reaction.deleted_v1": async () => {},
+      "im.chat.access_event.bot_p2p_chat_entered_v1": async () => {},
+      "im.chat.member.bot.added_v1": async () => {},
+      "im.chat.member.bot.deleted_v1": async () => {},
+      "card.action.trigger": async () => {},
+    });
+
+    const wsClient = await this.#createWsClient({
+      appId: this.#appId,
+      appSecret: this.#appSecret,
+    });
+    return wsClient.start({ eventDispatcher: dispatcher });
+  }
+
   async #client() {
     if (!this.#clientPromise) {
       this.#clientPromise = Promise.resolve(
@@ -93,6 +136,23 @@ async function createDefaultClient({ appId, appSecret }) {
     appId,
     appSecret,
     appType: sdk.AppType.SelfBuild,
+    domain: sdk.Domain.Feishu,
+  });
+}
+
+async function createDefaultEventDispatcher({ verificationToken, encryptKey }) {
+  const sdk = await import("@larksuiteoapi/node-sdk");
+  return new sdk.EventDispatcher({
+    verificationToken,
+    encryptKey,
+  });
+}
+
+async function createDefaultWsClient({ appId, appSecret }) {
+  const sdk = await import("@larksuiteoapi/node-sdk");
+  return new sdk.WSClient({
+    appId,
+    appSecret,
     domain: sdk.Domain.Feishu,
   });
 }

@@ -18,7 +18,7 @@ npm test
 npm run dev
 ```
 
-`dev` 当前会检查飞书凭据，创建飞书 SDK transport，并探测 bot open_id；真实飞书长连接事件监听后续接入。
+`dev` 当前会检查飞书凭据，创建飞书 SDK transport，探测 bot open_id，并通过飞书 SDK 长连接监听私聊消息事件。
 
 ```powershell
 npm run smoke:codex -- --help

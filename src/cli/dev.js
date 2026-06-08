@@ -18,6 +18,8 @@ export async function runDev({
   const feishuTransport = transportFactory({
     appId: env.FEISHU_APP_ID,
     appSecret: env.FEISHU_APP_SECRET,
+    verificationToken: env.FEISHU_VERIFICATION_TOKEN ?? "",
+    encryptKey: env.FEISHU_ENCRYPT_KEY ?? "",
   });
   const probe = await feishuTransport.probeBot();
   if (!probe.ok) {
@@ -36,6 +38,9 @@ export async function runDev({
     output.write(`Feishu bot ${probe.botName ?? "unknown"} (${probe.botOpenId}) detected.\n`);
   }
   await app.start();
-  output.write("fca bridge app started. Feishu long-connection transport is pending.\n");
+  output.write("fca bridge app started. Listening for Feishu message events.\n");
+  await feishuTransport.startMessageListener({
+    onMessageReceive: (payload) => app.eventHandler.handleMessageReceive(payload),
+  });
   return 0;
 }

@@ -21,6 +21,7 @@ TaskCardController
 - transport 通过依赖注入提供，便于测试和后续替换 SDK。
 - `FeishuSdkTransport` 使用 `@larksuiteoapi/node-sdk` 调用飞书消息 API。
 - `FeishuSdkTransport.probeBot()` 通过 bot ping API 探测 bot open_id，用于自回声过滤。
+- `FeishuSdkTransport.startMessageListener()` 使用飞书 SDK `EventDispatcher` 和 `WSClient` 监听 `im.message.receive_v1`。
 
 ## transport 接口
 
@@ -100,7 +101,7 @@ transport payload：
 
 ## 后续接入点
 
-- 使用飞书 Node SDK 实现长连接事件监听。
 - 统一飞书 API 错误摘要。
+- 增加长连接断线、重连和退出信号治理。
 - 增加消息长度和卡片 payload 尺寸保护。
 - 增加交互卡片回调处理。

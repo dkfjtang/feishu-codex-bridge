@@ -105,6 +105,66 @@ test("probeBot returns bot open id and name from Feishu ping API", async () => {
   });
 });
 
+test("startMessageListener registers receive handler and starts WS client", async () => {
+  const calls = [];
+  let registeredHandlers;
+  let dispatcher;
+  class FakeEventDispatcher {
+    constructor(options) {
+      calls.push({ type: "dispatcher", options });
+    }
+
+    register(handlers) {
+      registeredHandlers = handlers;
+      calls.push({ type: "register", handlers });
+    }
+  }
+  class FakeWsClient {
+    constructor(options) {
+      calls.push({ type: "ws", options });
+    }
+
+    async start(options) {
+      calls.push({ type: "start", options });
+    }
+  }
+  const messages = [];
+  const transport = new FeishuSdkTransport({
+    appId: "cli_123",
+    appSecret: "secret",
+    verificationToken: "token",
+    encryptKey: "encrypt",
+    createClient: () => ({}),
+    createEventDispatcher: (options) => {
+      dispatcher = new FakeEventDispatcher(options);
+      return dispatcher;
+    },
+    createWsClient: (options) => new FakeWsClient(options),
+  });
+
+  await transport.startMessageListener({
+    onMessageReceive: async (payload) => {
+      messages.push(payload);
+    },
+  });
+  await registeredHandlers["im.message.receive_v1"]({ event: { message: { message_id: "om_123" } } });
+
+  assert.equal(calls[0].type, "dispatcher");
+  assert.deepEqual(calls[0].options, {
+    verificationToken: "token",
+    encryptKey: "encrypt",
+  });
+  assert.equal(calls[1].type, "register");
+  assert.equal(calls[2].type, "ws");
+  assert.deepEqual(calls[2].options, {
+    appId: "cli_123",
+    appSecret: "secret",
+  });
+  assert.equal(calls[3].type, "start");
+  assert.equal(calls[3].options.eventDispatcher, dispatcher);
+  assert.deepEqual(messages, [{ event: { message: { message_id: "om_123" } } }]);
+});
+
 test("constructor requires app credentials", () => {
   assert.throws(
     () =>
