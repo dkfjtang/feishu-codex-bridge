@@ -28,6 +28,7 @@
 | `FCA_VERSION` | fca 版本标识，默认 `0.1.0`，会展示在卡片 footer 和结构化日志上下文。 |
 | `FCA_CARD_CHANNEL` | 任务卡片发送通道，可选 `im` / `cardkit`，默认 `im`；`cardkit` 会优先尝试 CardKit transport，失败或不可用时回退普通 IM 卡片。 |
 | `FCA_CARD_FOOTER_FIELDS` | 可选任务卡片 footer 字段列表，默认 `status,thread,turn,elapsed,tokens,model,version,error,cwd`；可用字段为 `status`、`thread`、`turn`、`elapsed`、`tokens`、`model`、`version`、`error`、`cwd`。 |
+| `FCA_FEISHU_FILE_INPUTS_ENABLED` | 后续飞书附件输入能力门禁，默认 `false`；当前版本只进入配置检查和 diagnostics，不下载或读取附件。 |
 | `FCA_LOG_LEVEL` | JSONL 结构化日志级别，可选 `debug` / `info` / `warn` / `error`，默认 `info`。 |
 | `FCA_TURN_TIMEOUT_SECONDS` | 单个 turn 超时时间。 |
 | `FCA_APPROVAL_TIMEOUT_SECONDS` | Codex approval request 等待飞书按钮处理的超时时间，默认 `300` 秒；超时默认拒绝。 |
@@ -58,7 +59,7 @@ npm run check-config
 - `FCA_GROUP_DEVELOPER_INSTRUCTIONS` 的配置数量会在摘要中展示；格式错误会报错。
 - `FCA_ALLOWED_WORKDIRS` 是否至少包含一个本地目录。
 - `FCA_DEFAULT_WORKDIR` 是否存在且位于工作目录白名单内。
-- turn 超时、approval 超时、thread store driver/path、message dedup store 路径、卡片通道、卡片 footer 字段和 Codex 命令等基础 runtime 配置。
+- turn 超时、approval 超时、thread store driver/path、message dedup store 路径、卡片通道、卡片 footer 字段、文件输入门禁和 Codex 命令等基础 runtime 配置。
 
 ## Thread Store
 

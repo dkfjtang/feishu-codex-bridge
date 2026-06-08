@@ -27,6 +27,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
     FCA_CARD_CHANNEL: "cardkit",
     FCA_CARD_FOOTER_FIELDS: "status,elapsed,tokens,model",
     FCA_FEISHU_WS_AUTO_RECONNECT: "false",
+    FCA_FEISHU_FILE_INPUTS_ENABLED: "true",
   });
 
   assert.deepEqual(config.allowedOpenIds, ["ou_1", "ou_2"]);
@@ -57,6 +58,7 @@ test("loadConfig parses comma separated open ids and semicolon separated workdir
   assert.equal(config.cardChannel, "cardkit");
   assert.deepEqual(config.cardFooterFields, ["status", "elapsed", "tokens", "model"]);
   assert.equal(config.feishuWsAutoReconnect, false);
+  assert.equal(config.feishuFileInputsEnabled, true);
 });
 
 test("loadConfig merges group configuration file with env group settings", () => {
@@ -121,6 +123,7 @@ test("loadConfig uses safe local defaults when optional values are missing", () 
   assert.equal(config.approvalTimeoutSeconds, 300);
   assert.equal(config.cardChannel, "im");
   assert.equal(config.feishuWsAutoReconnect, true);
+  assert.equal(config.feishuFileInputsEnabled, false);
   assert.deepEqual(config.cardFooterFields, [
     "status",
     "thread",
@@ -212,5 +215,12 @@ test("loadConfig rejects malformed Feishu WS auto reconnect flag", () => {
   assert.throws(
     () => loadConfig({ FCA_FEISHU_WS_AUTO_RECONNECT: "sometimes" }),
     /FCA_FEISHU_WS_AUTO_RECONNECT must be true or false/,
+  );
+});
+
+test("loadConfig rejects malformed Feishu file input flag", () => {
+  assert.throws(
+    () => loadConfig({ FCA_FEISHU_FILE_INPUTS_ENABLED: "sometimes" }),
+    /FCA_FEISHU_FILE_INPUTS_ENABLED must be true or false/,
   );
 });

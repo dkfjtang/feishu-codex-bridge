@@ -62,6 +62,9 @@ export function createBridgeApp({
         eventHandler: {
           active: Boolean(eventHandler),
         },
+        features: {
+          feishuFileInputsEnabled: config.feishuFileInputsEnabled,
+        },
         feishu: {
           messageListener: sanitizeMessageListenerStatus(
             feishuTransport?.getMessageListenerStatus?.(),

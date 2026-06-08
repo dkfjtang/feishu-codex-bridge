@@ -170,6 +170,7 @@ test("runDev logs sanitized bridge diagnostics after listener starts", async () 
         appServer: { active: true, secret: "should_not_escape" },
         runtime: { active: true },
         eventHandler: { active: true },
+        features: { feishuFileInputsEnabled: true, fileKey: "should_not_escape" },
         feishu: {
           messageListener: {
             active: true,
@@ -198,6 +199,7 @@ test("runDev logs sanitized bridge diagnostics after listener starts", async () 
     appServer: { active: true },
     runtime: { active: true },
     eventHandler: { active: true },
+    features: { feishuFileInputsEnabled: true },
     feishu: {
       messageListener: {
         active: true,

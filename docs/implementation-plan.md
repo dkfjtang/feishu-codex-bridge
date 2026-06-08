@@ -97,6 +97,7 @@ Done 标准：
 - Thread 映射按会话维度隔离：私聊使用 `open_id + cwd`，群聊使用 `chat_id + cwd`。
 - Codex delta 运行中更新经过节流，不逐 token patch 飞书卡片。
 - 私聊文件、图片、文档或语音消息会收到固定暂不支持提示；Bridge 不下载附件、不读取文件名或 file_key，并按 `message_id` 去重。
+- 文件输入能力已有显式配置门禁 `FCA_FEISHU_FILE_INPUTS_ENABLED`，默认关闭；当前即使开启也不下载附件，后续实现下载时必须先接入该门禁、审批和审计。
 
 ## M4 稳定性和可观测性
 
@@ -158,6 +159,7 @@ Done 标准：
 - 普通群聊文本仍跳过；进入 `BridgeRuntime` 后仍使用飞书发送者 `open_id` 白名单作为权限依据。
 - 群聊任务继续按 `chat_id` 串行，避免同一群内多个 Codex turn 并发打乱卡片状态。
 - 私聊非文本消息已具备安全提示前置闭环，为后续文件下载和回传能力保留清晰边界。
+- `FCA_FEISHU_FILE_INPUTS_ENABLED` 已进入配置检查和 diagnostics，只暴露布尔开关状态，不暴露附件 key、文件名、路径或内容。
 - 长驻进程已具备基础退出治理：本机开发入口收到 `SIGINT` / `SIGTERM` 后会 best-effort 停止 app-server 子进程和飞书 transport，降低长任务或 WS listener 残留风险；飞书长连接默认依赖 SDK 自动重连，重连阶段会输出结构化日志。
 
 候选能力：

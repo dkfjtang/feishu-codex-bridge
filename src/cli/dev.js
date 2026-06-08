@@ -133,6 +133,7 @@ function sanitizeBridgeDiagnostics(diagnostics) {
       appServer: { active: null },
       runtime: { active: null },
       eventHandler: { active: null },
+      features: { feishuFileInputsEnabled: null },
       feishu: { messageListener: null },
     };
   }
@@ -146,6 +147,9 @@ function sanitizeBridgeDiagnostics(diagnostics) {
     },
     eventHandler: {
       active: booleanOrNull(diagnostics.eventHandler?.active),
+    },
+    features: {
+      feishuFileInputsEnabled: booleanOrNull(diagnostics.features?.feishuFileInputsEnabled),
     },
     feishu: {
       messageListener: sanitizeMessageListenerStatus(diagnostics.feishu?.messageListener),

@@ -52,6 +52,7 @@ export function checkConfig(env = process.env) {
       cardChannel: config.cardChannel,
       cardFooterFields: config.cardFooterFields,
       feishuWsAutoReconnect: config.feishuWsAutoReconnect,
+      feishuFileInputsEnabled: config.feishuFileInputsEnabled,
     },
   };
 }
@@ -98,6 +99,7 @@ export async function runCheckConfig({
   output.write(`cardChannel: ${result.summary.cardChannel}\n`);
   output.write(`cardFooterFields: ${result.summary.cardFooterFields.join(",")}\n`);
   output.write(`feishuWsAutoReconnect: ${result.summary.feishuWsAutoReconnect}\n`);
+  output.write(`feishuFileInputsEnabled: ${result.summary.feishuFileInputsEnabled}\n`);
   if (result.warnings.length > 0) {
     output.write(`${result.warnings.map((warning) => `! ${warning}`).join("\n")}\n`);
   }

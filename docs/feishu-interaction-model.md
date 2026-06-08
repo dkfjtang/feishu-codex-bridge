@@ -284,6 +284,7 @@ MVP 可以先实现：
 - 群聊 @ Bot 文本事件解析，并移除 mention key 后交给 Codex。
 - 普通群聊和空文本消息跳过。
 - 私聊非文本消息返回固定暂不支持提示，不下载附件或读取附件内容。
+- `FCA_FEISHU_FILE_INPUTS_ENABLED` 已作为后续附件输入门禁进入配置和 diagnostics，默认关闭；当前不改变非文本消息处理行为。
 - 任务卡片 payload 渲染。
 - 发送新卡片和更新已有卡片的动作构造。
 - 飞书消息 action 到 transport 调用的适配边界。

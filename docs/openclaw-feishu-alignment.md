@@ -74,7 +74,7 @@ fca 第一阶段不追求完整复制工具生态，优先对齐“飞书作为 
 | P1 | CardKit 优先、IM patch fallback | 已支持 `FCA_CARD_CHANNEL=cardkit`、SDK CardKit create/update、CardKit 优先和 IM fallback；默认仍保持 IM |
 | P1 | 群聊策略 | 已完成群聊 @ 最小入口、可选群 `chat_id` allowlist、群内 sender 收紧策略和群级 developer instructions |
 | P1 | 卡片交互审批 | 已完成 Codex approval server request 识别、等待审批卡片、详情展开、飞书按钮回调和超时默认安全拒绝 |
-| P2 | 文件/图片资源 | 私聊非文本消息已返回固定暂不支持提示且不下载附件；后续作为 Codex 输入附件和输出附件能力规划 |
+| P2 | 文件/图片资源 | 私聊非文本消息已返回固定暂不支持提示且不下载附件；已补 `FCA_FEISHU_FILE_INPUTS_ENABLED` 显式门禁并默认关闭，后续作为 Codex 输入附件和输出附件能力规划 |
 | P2 | 文档/多维表/日历/任务工具 | 不属于 fca MVP；只在 Codex 能力需要飞书工具时评估 |
 
 ## 源码对齐待办
@@ -124,6 +124,7 @@ fca 映射：
 - 新增 `feishu.ws_starting`、`feishu.ws_dispatcher_created`、`feishu.ws_handlers_registered`、`feishu.ws_client_created`、`feishu.ws_started`、`feishu.ws_reconnecting`、`feishu.ws_reconnected`、`feishu.ws_error`、`feishu.ws_start_failed`、`feishu.ws_cleanup_failed`、`feishu.ws_stopped` 和 `feishu.ws_stop_failed`。
 - 新增 `feishu.event_received` 和 `feishu.event_handler_failed`，只记录 `appId`、event type、`message_id`、`chat_id`、`chat_type` 和错误摘要。
 - 新增 `feishu.message_handled` 和 `feishu.message_skipped`，记录消息 gate 结果、处理耗时、跳过原因和任务状态，不记录消息正文、附件 key、文件名或完整 payload。
+- `FCA_FEISHU_FILE_INPUTS_ENABLED` 先作为文件输入能力门禁进入配置检查和 diagnostics，当前只暴露布尔状态，不下载或读取附件。
 
 差异理由：
 

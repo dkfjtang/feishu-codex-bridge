@@ -13,6 +13,7 @@ const DEFAULT_MESSAGE_DEDUP_STORE_PATH = "data/message-dedup.json";
 const DEFAULT_APP_VERSION = "0.1.0";
 const DEFAULT_CARD_CHANNEL = "im";
 const DEFAULT_FEISHU_WS_AUTO_RECONNECT = true;
+const DEFAULT_FEISHU_FILE_INPUTS_ENABLED = false;
 const DEFAULT_CARD_FOOTER_FIELDS = [
   "status",
   "thread",
@@ -87,6 +88,11 @@ export function loadConfig(env = process.env) {
       env.FCA_FEISHU_WS_AUTO_RECONNECT,
       DEFAULT_FEISHU_WS_AUTO_RECONNECT,
       "FCA_FEISHU_WS_AUTO_RECONNECT",
+    ),
+    feishuFileInputsEnabled: parseBoolean(
+      env.FCA_FEISHU_FILE_INPUTS_ENABLED,
+      DEFAULT_FEISHU_FILE_INPUTS_ENABLED,
+      "FCA_FEISHU_FILE_INPUTS_ENABLED",
     ),
   };
 }

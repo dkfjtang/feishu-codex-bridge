@@ -201,6 +201,7 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: false },
     runtime: { active: false },
     eventHandler: { active: false },
+    features: { feishuFileInputsEnabled: false },
     feishu: { messageListener: sanitizedWsStatus },
   });
 
@@ -210,6 +211,7 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: true },
     runtime: { active: true },
     eventHandler: { active: true },
+    features: { feishuFileInputsEnabled: false },
     feishu: { messageListener: sanitizedWsStatus },
   });
   assert.equal(JSON.stringify(app.getDiagnostics()).includes("should_not_escape"), false);
@@ -220,6 +222,7 @@ test("createBridgeApp exposes sanitized runtime diagnostics", async () => {
     appServer: { active: false },
     runtime: { active: false },
     eventHandler: { active: false },
+    features: { feishuFileInputsEnabled: false },
     feishu: { messageListener: sanitizedWsStatus },
   });
 });
