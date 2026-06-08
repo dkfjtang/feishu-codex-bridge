@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "smoke:codex": "node scripts/smoke-codex-turn.mjs",
     "test": "node --test"
   }
 }

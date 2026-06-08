@@ -14,3 +14,13 @@
 ```powershell
 npm test
 ```
+
+```powershell
+npm run smoke:codex -- --help
+```
+
+真实启动本地 Codex app-server 的 smoke 命令：
+
+```powershell
+npm run smoke:codex -- --cwd F:\development\f-codex --prompt "Summarize this repository in one short paragraph."
+```
